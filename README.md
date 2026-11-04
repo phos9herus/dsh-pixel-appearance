@@ -1,5 +1,7 @@
 # DSH Pixel Appearance
 
+[简体中文](README.zh-CN.md) · [English](README.md)
+
 An appearance plugin for the **DSH (DeepSeek Harness) Web GUI**: native, pixel,
 reactive, and static themes, animated pixel backgrounds, a pointer halo with a
 temporal pixel trail, configurable pixel geometry, canvas materials, and
