@@ -1,3 +1,10 @@
+/** Resolve the active custom theme id, or null for Native. */
+function appearanceThemeMode(config) {
+  const theme = config && config.theme
+  if (theme === 'pixel' || theme === 'static' || theme === 'response' || theme === 'review') return theme
+  return null
+}
+
 function appearanceThemeController(ctx, store) {
   let overrideDispose = null
   let lastTheme = null
@@ -15,11 +22,7 @@ function appearanceThemeController(ctx, store) {
     applying = true
     try {
       const { config } = store.getSnapshot()
-      const mode = config.theme === 'pixel'
-        ? 'pixel'
-        : config.theme === 'static'
-          ? 'static'
-          : config.theme === 'response' ? 'response' : null
+      const mode = appearanceThemeMode(config)
       if (mode === null) {
         disposeOverride()
         if (lastTheme !== null) {
@@ -34,7 +37,7 @@ function appearanceThemeController(ctx, store) {
       const scheme = appearanceResolvedScheme(ctx)
       const effective = appearanceEffective(config, scheme)
       const tokens = {}
-      if (mode === 'pixel' || mode === 'response') {
+      if (mode === 'pixel' || mode === 'response' || mode === 'review') {
         tokens['--dsw-alias-bg-base'] = {
           light: effective.backgroundColor,
           dark: effective.backgroundColor,
@@ -58,7 +61,7 @@ function appearanceThemeController(ctx, store) {
         console.error('appearance: token override failed', cause)
       }
 
-      if (mode === 'pixel' || mode === 'response') {
+      if (mode === 'pixel' || mode === 'response' || mode === 'review') {
         const desired = effective.autoBackground ? null : effective.dark ? 'dark' : 'light'
         if (desired !== null && appearanceResolvedScheme(ctx) !== desired) {
           try {
@@ -98,7 +101,9 @@ function appearanceThemeController(ctx, store) {
 function appearanceBuildCss(config, effective) {
   const mode = config.theme === 'static'
     ? 'static'
-    : config.theme === 'response' ? 'response' : 'pixel'
+    : config.theme === 'response'
+      ? 'response'
+      : config.theme === 'review' ? 'review' : 'pixel'
   const scene = '[data-appearance-scene]'
   const bg = effective.backgroundColor
   const blur = effective.blur
@@ -267,7 +272,10 @@ function AppearanceLayer({ store, ctx }) {
       if (typeof off === 'function') off()
     }
   }, [ctx])
-  if (config.theme !== 'pixel' && config.theme !== 'static' && config.theme !== 'response') {
+  if (config.theme !== 'pixel'
+    && config.theme !== 'static'
+    && config.theme !== 'response'
+    && config.theme !== 'review') {
     return null
   }
   const effective = appearanceEffective(config, appearanceResolvedScheme(ctx))
@@ -285,14 +293,9 @@ function appearanceMountScenes(ctx, store) {
 
   const readState = () => {
     const { config } = store.getSnapshot()
-    const mode = config.theme === 'pixel'
-      ? 'pixel'
-      : config.theme === 'static'
-        ? 'static'
-        : config.theme === 'response' ? 'response' : null
     return {
       config,
-      mode,
+      mode: appearanceThemeMode(config),
       effective: appearanceEffective(config, appearanceResolvedScheme(ctx)),
     }
   }
@@ -302,6 +305,14 @@ function appearanceMountScenes(ctx, store) {
     store,
     requestPaint: () => paintResponseNow(),
   })
+
+  const reviewRuntime = typeof appearanceReviewCreateRuntime === 'function'
+    ? appearanceReviewCreateRuntime({
+      ctx,
+      store,
+      requestPaint: () => paintReviewNow(),
+    })
+    : null
 
   const drawEntry = (entry, now) => {
     entry.frame = null
@@ -323,11 +334,13 @@ function appearanceMountScenes(ctx, store) {
       }
     } else if (entry.mode === 'response') {
       responseRuntime.paint(entry.canvas, entry.canvasRect, now)
+    } else if (entry.mode === 'review') {
+      reviewRuntime?.paint(entry.canvas, entry.canvasRect, now)
     } else {
       return
     }
     if (entry.active
-      && (entry.mode === 'pixel' || entry.mode === 'response')
+      && (entry.mode === 'pixel' || entry.mode === 'response' || entry.mode === 'review')
       && !document.hidden
       && !(reduced && reduced.matches)) {
       entry.frame = requestAnimationFrame((next) => drawEntry(entry, next))
@@ -340,6 +353,16 @@ function appearanceMountScenes(ctx, store) {
     for (const entry of mounted.values()) {
       if (entry.active && entry.mode === 'response') {
         responseRuntime.paint(entry.canvas, entry.canvasRect, now)
+      }
+    }
+  }
+
+  function paintReviewNow() {
+    if (disposed) return
+    const now = performance.now()
+    for (const entry of mounted.values()) {
+      if (entry.active && entry.mode === 'review') {
+        reviewRuntime?.paint(entry.canvas, entry.canvasRect, now)
       }
     }
   }
@@ -372,10 +395,11 @@ function appearanceMountScenes(ctx, store) {
     const pixelActive = state.mode === 'pixel'
     const responseActive = state.mode === 'response'
     const staticActive = state.mode === 'static'
-    const active = pixelActive || staticActive || responseActive
+    const reviewActive = state.mode === 'review'
+    const active = pixelActive || staticActive || responseActive || reviewActive
     entry.active = active
     entry.mode = state.mode
-    entry.canvas.hidden = !(pixelActive || responseActive)
+    entry.canvas.hidden = !(pixelActive || responseActive || reviewActive)
     entry.staticLayer.hidden = !staticActive
     entry.scene.toggleAttribute('data-appearance-scene', active)
     if (!active) {
@@ -388,6 +412,7 @@ function appearanceMountScenes(ctx, store) {
       return
     }
     if (responseActive) responseRuntime.activate()
+    if (reviewActive) reviewRuntime?.activate()
     entry.resize()
     if (document.hidden || (reduced && reduced.matches)) {
       stopEntry(entry)
@@ -459,7 +484,8 @@ function appearanceMountScenes(ctx, store) {
       resizeObserver: null,
     }
     entry.resizeObserver = new ResizeObserver(() => {
-      if (!entry.active || (entry.mode !== 'pixel' && entry.mode !== 'response')) return
+      if (!entry.active
+        || (entry.mode !== 'pixel' && entry.mode !== 'response' && entry.mode !== 'review')) return
       entry.resize()
       if (document.hidden || (reduced && reduced.matches)) drawEntry(entry, performance.now())
     })
@@ -482,11 +508,13 @@ function appearanceMountScenes(ctx, store) {
     }
     for (const entry of mounted.values()) updateEntry(entry)
     syncResponseActive()
+    syncReviewActive()
   }
 
   const updateAll = () => {
     for (const entry of mounted.values()) updateEntry(entry)
     syncResponseActive()
+    syncReviewActive()
   }
 
   const syncResponseActive = () => {
@@ -501,8 +529,22 @@ function appearanceMountScenes(ctx, store) {
     else responseRuntime.deactivate()
   }
 
+  const syncReviewActive = () => {
+    if (!reviewRuntime) return
+    let active = false
+    for (const entry of mounted.values()) {
+      if (entry.active && entry.mode === 'review') {
+        active = true
+        break
+      }
+    }
+    if (active) reviewRuntime.activate()
+    else reviewRuntime.deactivate()
+  }
+
   const observer = new MutationObserver((records) => {
     responseRuntime.onMutations(records)
+    reviewRuntime?.onMutations(records)
     if (queued) return
     queued = true
     queueMicrotask(scan)
@@ -523,6 +565,7 @@ function appearanceMountScenes(ctx, store) {
     disposed = true
     observer.disconnect()
     responseRuntime.dispose()
+    reviewRuntime?.dispose()
     offStore?.()
     offTheme?.()
     window.removeEventListener('resize', onResize)
@@ -538,7 +581,9 @@ function appearanceStartCreator(ctx, kind, t) {
   if (!uiWorkspace || typeof uiWorkspace.startSession !== 'function') {
     return { ok: false, error: 'Workspace navigation is unavailable' }
   }
-  const prompt = kind === 'animation' ? t('creatorPromptAnimation') : t('creatorPromptTheme')
+  const prompt = kind === 'animation'
+    ? t('creatorPromptAnimation')
+    : kind === 'review' ? t('creatorPromptReview') : t('creatorPromptTheme')
   try {
     uiWorkspace.startSession(undefined, {
       agentPreset: 'cordis',

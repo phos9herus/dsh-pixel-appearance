@@ -3,9 +3,9 @@
 [简体中文](README.zh-CN.md) · [English](README.md)
 
 An appearance plugin for the **DSH (DeepSeek Harness) Web GUI**: native, pixel,
-reactive, and static themes, animated pixel backgrounds, a pointer halo with a
-temporal pixel trail, configurable pixel geometry, canvas materials, and
-composer/sidebar materials.
+reactive, retrospective, and static themes, animated pixel backgrounds, a pointer
+halo with a temporal pixel trail, configurable pixel geometry, canvas materials,
+and composer/sidebar materials.
 
 ![DSH Pixel Appearance banner](docs/banner.svg)
 
@@ -32,6 +32,11 @@ dependency.
   - optional temporal trail: main-colour pixels stamped at the pointer that fade
     back to the background over a configurable retention time;
   - wave damping to shorten and fade every wave.
+- **Retrospective (Review)** — a content-guided pixel theme: it samples the
+  current conversation (or the most recent session on a new session screen),
+  scores it against Code, Investigation, Creation, and Discussion, and paints one
+  exclusive 8-second sub-theme animation. A sub-theme menu can follow the content
+  or lock one of the four; session reads are read-only and released immediately.
 - **Static** — a local or remote picture behind the main page and sidebar with
   adjustable blur and dim.
 
@@ -112,12 +117,13 @@ changes to `index.js` (Host Config fields) always require a DSH restart.
 
 Open **Settings → Appearance → Theme** and choose a theme card.
 
-- Theme cards: Native, Pixel, Response, Static.
+- Theme cards: Native, Pixel, Response, Retrospective, Static.
 - The **Canvas style** panel is available for all custom themes (disabled under
   Native).
-- The **Pixels** panel is enabled for Pixel and Response themes.
+- The **Pixels** panel is enabled for Pixel, Response, and Retrospective themes.
 - The **Response effect**, **Composer wave**, and **Wave damping** panels appear
   when the Response theme is selected.
+- The **Sub-theme animation** panel appears when Retrospective is selected.
 - Static theme adds a **Static picture** panel.
 
 ### Response interactions
@@ -134,11 +140,26 @@ Open **Settings → Appearance → Theme** and choose a theme card.
 The trail strength maps to a retention time of **250–2000 ms**. A value of 0
 disables the trail. Static and dynamic halo styles both support the trail.
 
+### Retrospective content guidance
+
+- While a session is active, the theme samples the latest rendered Chat rows
+  (text, code blocks, tool calls, and questions) and scores four sub-themes.
+- On a new-session screen with no Chat rows, it reads the most recent non-blank
+  session read-only, scans the tail of its events, and releases it immediately.
+  Failures or timeouts fall back to the session title/metadata.
+- Score changes use hysteresis and a minimum interval, so a new message does not
+  switch the sub-theme on every row. Empty content starts from Discussion.
+- The **Sub-theme animation** panel exposes **Follow content**, **Code**,
+  **Investigation**, **Creation**, and **Discussion**. Choosing a concrete
+  sub-theme locks it; Follow content restores automatic selection.
+- The four animations share the 8-second seamless loop and two-colour pixel
+  language; they never appear in the generic Animation menu.
+
 ## Settings reference
 
 | Field | Default | Description |
 | --- | --- | --- |
-| `theme` | `native` | `native`, `pixel`, `response`, or `static` |
+| `theme` | `native` | `native`, `pixel`, `response`, `review`, or `static` |
 | `palette` | `auto` | `auto`, `deepsea`, `neon`, `sunset`, `forest`, `paper`, or `custom` |
 | `mainColor` / `backgroundColor` | — | Custom colours for the Custom palette |
 | `animation` | `ripple` | Pixel animation: `ripple`, `rain`, `aurora`, `pulse` |
@@ -150,6 +171,7 @@ disables the trail. Static and dynamic halo styles both support the trail.
 | `trailStrength` | `0` | Trail strength (0–1); 0 = no trail, 1 ≈ 2 s retention |
 | `composerWaveMode` | `whole` | `whole` (composer edge) or `caret` |
 | `waveDamping` | `0` | Wave damping (0–1); higher values shorten every wave |
+| `reviewSubTheme` | `auto` | `auto` (follow content) or `code`, `investigate`, `create`, `discuss` |
 | `canvasStyle` | `glass` | Main canvas material: `glass` or `transparent` |
 | `composerStyle` / `sidebarStyle` | `glass` | `native`, `glass`, or `transparent` |
 | `composerColor` / `sidebarColor` | — | Optional tint colours |
@@ -190,6 +212,7 @@ dsh-pixel-appearance/
 │  ├─ 30-settings.js        Settings page React tree and CSS
 │  ├─ 40-runtime.js         Scene mount, theme application, materials
 │  ├─ 45-response.js        Response theme event runtime and trail buffer
+│  ├─ 47-review.js          Retrospective content detection, guides, animations
 │  ├─ 99-tail.js            Factory return
 │  ├─ build.mjs             Fragment concatenation
 │  └─ INTERFACE.md          Fragment contract and engine API
@@ -208,6 +231,13 @@ dsh-pixel-appearance/
   `[data-composer-card]`, `[data-chat-flow]`, `[data-chat-anchor-key]`, and
   `[data-chat-flow-kind]`. If a DSH update changes them, update the selectors in
   `src/45-response.js`.
+- The Retrospective theme reads
+  `[data-conversation-content] [data-chat-anchor-key]` and
+  `data-chat-flow-kind` for the current session. On a new-session screen it uses
+  the DSH session list and a read-only `sessions.retain(...)` tail read of the
+  most recent non-blank session, releasing it immediately. Changes to those
+  selectors, session events, or the retention API need matching updates in
+  `src/47-review.js`.
 - Static local pictures are stored as compressed data URLs inside the profile's
   `cordis.patch.yml`; very large pictures still make the config heavy. Prefer a
   modest image or an https link.
@@ -216,8 +246,8 @@ dsh-pixel-appearance/
   effective pixel size may be increased slightly to keep rendering smooth.
 - `prefers-reduced-motion` forces the static halo, pauses the continuous loop,
   and disables the temporal trail.
-- Enabling `dsh-ascii-whales` at the same time as the Pixel or Response theme
-  can stack two background canvases; disable one of them.
+- Enabling `dsh-ascii-whales` at the same time as the Pixel, Response, or
+  Retrospective theme can stack two background canvases; disable one of them.
 
 ## License
 

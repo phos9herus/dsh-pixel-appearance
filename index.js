@@ -5,7 +5,7 @@ import z from './vendor/schemastery/lib/index.mjs'
  * write updates the live reference in place instead of reloading the plugin.
  */
 export const Config = z.object({
-  theme: z.union(['native', 'pixel', 'static', 'response']).default('native').volatile(),
+  theme: z.union(['native', 'pixel', 'static', 'response', 'review']).default('native').volatile(),
   palette: z.string().default('auto').volatile(),
   mainColor: z.string().default('#4D6BFE').volatile(),
   backgroundColor: z.string().default('').volatile(),
@@ -31,6 +31,8 @@ export const Config = z.object({
   pixelSize: z.number().min(6).max(32).default(10).volatile(),
   pixelStyle: z.union(['square', 'rounded']).default('square').volatile(),
   pixelRadius: z.number().min(0).max(0.5).default(0.25).volatile(),
+  /** The Review theme: automatic sub-theme selection from content, or a manual lock. */
+  reviewSubTheme: z.union(['auto', 'code', 'investigate', 'create', 'discuss']).default('auto').volatile(),
   /** The Response theme: composer wave origin, whole card edge or caret. */
   composerWaveMode: z.union(['whole', 'caret']).default('whole').volatile(),
   /** The Response theme: 0 = no damping (current effect), 1 = fast decay. */

@@ -29,11 +29,13 @@ const appearanceSettingsThemes = [
   { id: 'native', titleKey: 'native', hintKey: 'nativeHint', glyph: 'native' },
   { id: 'pixel', titleKey: 'pixel', hintKey: 'pixelHint', glyph: 'pixel' },
   { id: 'response', titleKey: 'response', hintKey: 'responseHint', glyph: 'response' },
+  { id: 'review', titleKey: 'review', hintKey: 'reviewHint', glyph: 'review' },
   { id: 'static', titleKey: 'static', hintKey: 'staticHint', glyph: 'static' },
 ]
 
 /** Fields added after the first release; a stale Host silently drops them. */
 const appearanceSettingsHostFields = {
+  theme: true,
   composerWaveMode: true,
   waveDamping: true,
   pixelSize: true,
@@ -41,6 +43,7 @@ const appearanceSettingsHostFields = {
   pixelRadius: true,
   haloStyle: true,
   trailStrength: true,
+  reviewSubTheme: true,
 }
 
 /** Pixel glyphs drawn with rects only, so they stay crisp at any size. */
@@ -79,6 +82,36 @@ const appearanceSettingsGlyphs = {
   response: [
     [3, 3, 18, 18, 0.18], [6, 6, 12, 12, 0.32], [9, 9, 6, 6, 0.6], [11, 11, 2, 2],
     [2, 2, 2, 2, 0.75], [20, 4, 2, 2, 0.5], [19, 19, 2, 2, 0.65],
+  ],
+  review: [
+    [2, 2, 4, 2, 0.7], [2, 2, 2, 4, 0.7],
+    [18, 2, 4, 2, 0.7], [20, 2, 2, 4, 0.7],
+    [2, 20, 4, 2, 0.7], [2, 18, 2, 4, 0.7],
+    [18, 20, 4, 2, 0.7], [20, 18, 2, 4, 0.7],
+    [3, 11, 2, 2], [5, 9, 2, 2], [7, 7, 2, 2], [9, 5, 2, 2], [11, 4, 2, 2],
+    [13, 5, 2, 2], [15, 7, 2, 2], [17, 9, 2, 2], [19, 11, 2, 2],
+    [3, 13, 2, 2], [5, 15, 2, 2], [7, 17, 2, 2], [9, 18, 2, 2], [11, 18, 2, 2],
+    [13, 18, 2, 2], [15, 17, 2, 2], [17, 15, 2, 2], [19, 13, 2, 2],
+    [10, 10, 4, 4],
+  ],
+  reviewCode: [
+    [4, 6, 2, 2], [3, 8, 2, 8], [4, 16, 2, 2],
+    [18, 6, 2, 2], [19, 8, 2, 8], [18, 16, 2, 2],
+    [9, 8, 6, 2], [9, 12, 4, 2], [9, 16, 5, 2, 0.7],
+  ],
+  reviewInvestigate: [
+    [3, 3, 18, 18, 0.14], [6, 6, 12, 12, 0.3], [9, 9, 6, 6, 0.6], [11, 11, 2, 2],
+    [13, 10, 2, 2, 0.9], [15, 8, 2, 2, 0.75], [17, 6, 2, 2, 0.6], [19, 4, 2, 2, 0.45],
+  ],
+  reviewCreate: [
+    [3, 18, 12, 2], [5, 14, 9, 2, 0.75], [7, 10, 6, 2, 0.55],
+    [16, 6, 2, 2], [14, 8, 2, 2, 0.8], [18, 8, 2, 2, 0.8],
+    [16, 4, 2, 2, 0.85], [16, 10, 2, 2, 0.6],
+  ],
+  reviewDiscuss: [
+    [2, 5, 3, 2, 0.9], [2, 9, 6, 2, 0.6], [2, 13, 12, 2, 0.38],
+    [19, 5, 3, 2, 0.9], [16, 9, 6, 2, 0.6], [10, 13, 12, 2, 0.38],
+    [8, 18, 2, 2, 0.8], [14, 18, 2, 2, 0.55],
   ],
   check: [
     [5, 12, 2, 2], [7, 14, 2, 2], [9, 12, 2, 2],
@@ -632,13 +665,259 @@ function AppearanceSettingsResponsePreview({
   })
 }
 
+/** Locale-key stem for a Review sub-theme id (`reviewCode`, `reviewAuto`, …). */
+function appearanceSettingsReviewKey(kind) {
+  return 'review' + kind.charAt(0).toUpperCase() + kind.slice(1)
+}
+
+/** Pixel glyph for a Review sub-theme card; `auto` reuses the Creator sparkle. */
+function appearanceSettingsReviewGlyph(kind) {
+  if (kind === 'auto') return 'sparkle'
+  if (kind === 'code') return 'reviewCode'
+  if (kind === 'investigate') return 'reviewInvestigate'
+  if (kind === 'create') return 'reviewCreate'
+  return 'reviewDiscuss'
+}
+
+/**
+ * Live guide readout for the Retrospective theme. `guide` comes from
+ * `appearanceReviewUseGuide()` (47-review.js); this page never runs content
+ * detection itself.
+ */
+function AppearanceSettingsReviewStatus({ t, guide }) {
+  const state = guide && typeof guide === 'object' ? guide : null
+  const ready = Boolean(state) && state.ready !== false
+  const kind = state && APPEARANCE_REVIEW_SUBTHEMES.indexOf(state.kind) >= 0
+    ? state.kind
+    : 'discuss'
+  const name = t(appearanceSettingsReviewKey(kind))
+  const sourceKey = state && state.source === 'recent' ? 'reviewSourceRecent' : 'reviewSourceCurrent'
+  const sourceText = appearanceSettingsFormat(t('reviewStatusSource'), { source: t(sourceKey) })
+  const locked = Boolean(state)
+    && (state.locked === true || (typeof state.manualKind === 'string' && state.manualKind !== 'auto'))
+  /* The hook has no content-length flag: an empty Discussion guide without a
+   * guiding title is the neutral "nothing to recall yet" state. */
+  const empty = ready && kind === 'discuss' && !state.title
+  return h('div', {
+    className: 'apx-review-status',
+    role: 'status',
+    'aria-live': 'polite',
+  },
+  h('div', { className: 'apx-review-status-line' },
+    h('span', { className: 'apx-review-status-icon', 'aria-hidden': 'true' },
+      h(AppearanceSettingsIcon, { name: appearanceSettingsReviewGlyph(kind), size: 18 })),
+    h('span', { className: 'apx-review-status-text' },
+      ready
+        ? appearanceSettingsFormat(t('reviewStatus'), { name })
+        : t('reviewStatusReading')),
+    locked ? h('span', { className: 'apx-review-badge' }, t('reviewLocked')) : null),
+  ready ? h('span', { className: 'apx-review-source' }, sourceText) : null,
+  empty ? h('span', { className: 'apx-review-empty' }, t('reviewStatusEmpty')) : null)
+}
+
+/**
+ * Demo preview for the Retrospective theme. It reuses the live Review painter
+ * with a deterministic demo guide (fixed seed per sub-theme), so the page shows
+ * exactly the selected sub-theme animation without running content detection.
+ */
+function AppearanceSettingsReviewPreview({
+  t,
+  mainColor,
+  backgroundColor,
+  subTheme,
+  detected,
+  pixelSize,
+  pixelStyle,
+  pixelRadius,
+}) {
+  const canvasRef = React.useRef(null)
+  const chosen = subTheme === 'auto'
+    ? (APPEARANCE_REVIEW_SUBTHEMES.indexOf(detected) >= 0 ? detected : 'discuss')
+    : subTheme
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return undefined
+    const view = typeof window !== 'undefined' ? window : null
+    const reduced = Boolean(
+      view && typeof view.matchMedia === 'function'
+      && view.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    )
+    const clock = () => {
+      if (view && view.performance && typeof view.performance.now === 'function') {
+        return view.performance.now()
+      }
+      return Date.now()
+    }
+    const started = clock()
+    const resolvedBackground = backgroundColor ? backgroundColor : '#151517'
+    const index = Math.max(0, APPEARANCE_REVIEW_SUBTHEMES.indexOf(chosen))
+    /* Constant, deterministic demo sample: the seed only distinguishes kinds. */
+    const demoGuide = {
+      kind: chosen,
+      source: 'current',
+      title: '',
+      seed: (0x9e3779b9 ^ Math.imul(index + 1, 2654435761)) >>> 0,
+      energy: 0.72,
+      density: 0.55,
+      progress: 0.42,
+      at: 0,
+    }
+    let frame = 0
+    let disposed = false
+    let resizeObserver = null
+
+    const paint = (time) => {
+      const width = canvas.width
+      const height = canvas.height
+      if (!width || !height) return
+      try {
+        appearancePaintReview(canvas, {
+          mainColor,
+          backgroundColor: resolvedBackground,
+          animation: chosen,
+          guide: demoGuide,
+          time,
+          cell: Math.max(2, Math.round(pixelSize)),
+          pixelStyle,
+          pixelRadius,
+        })
+      } catch {
+        // A bad frame must never take the settings page down.
+      }
+    }
+
+    const measure = () => {
+      const rect = canvas.getBoundingClientRect()
+      const width = Math.max(1, Math.round(rect.width || 640))
+      const height = Math.max(1, Math.round(rect.height || 168))
+      if (canvas.width !== width) canvas.width = width
+      if (canvas.height !== height) canvas.height = height
+      paint(reduced ? 1.25 : (clock() - started) / 1000)
+    }
+
+    measure()
+
+    if (!reduced && typeof requestAnimationFrame === 'function') {
+      const loop = () => {
+        if (disposed) return
+        paint((clock() - started) / 1000)
+        frame = requestAnimationFrame(loop)
+      }
+      frame = requestAnimationFrame(loop)
+    }
+
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(measure)
+      resizeObserver.observe(canvas)
+    } else if (view && typeof view.addEventListener === 'function') {
+      view.addEventListener('resize', measure)
+    }
+
+    return () => {
+      disposed = true
+      if (frame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frame)
+      if (resizeObserver) resizeObserver.disconnect()
+      else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
+    }
+  }, [mainColor, backgroundColor, chosen, pixelSize, pixelStyle, pixelRadius])
+
+  return h('canvas', {
+    ref: canvasRef,
+    className: 'apx-preview-canvas',
+    role: 'img',
+    'aria-label': t('preview'),
+  })
+}
+
+/**
+ * Sub-theme section of the Retrospective theme: live guide status, the
+ * auto + four manual sub-theme cards, the Creator entry, and one demo preview.
+ * Rendered only while the Review theme is selected, so the guide hook is never
+ * subscribed on other themes.
+ */
+function AppearanceSettingsReviewSection({
+  t,
+  subTheme,
+  mainColor,
+  backgroundColor,
+  pixelSize,
+  pixelStyle,
+  pixelRadius,
+  creatorBusy,
+  onSelect,
+  onCreate,
+}) {
+  const guide = appearanceReviewUseGuide()
+  const state = guide && typeof guide === 'object' ? guide : null
+  const ready = Boolean(state) && state.ready !== false
+  const detectedKind = state && APPEARANCE_REVIEW_SUBTHEMES.indexOf(state.kind) >= 0
+    ? state.kind
+    : 'discuss'
+  const detectedLabel = t(appearanceSettingsReviewKey(detectedKind))
+  const chosenKind = subTheme === 'auto' ? detectedKind : subTheme
+  const chosenLabel = t(appearanceSettingsReviewKey(chosenKind))
+  const autoDetected = subTheme === 'auto' && ready
+
+  return h(AppearanceSettingsSection, {
+    title: t('sectionReview'),
+    hint: t('sectionReviewHint'),
+  },
+  h('div', { className: 'apx-stack' },
+    h(AppearanceSettingsReviewStatus, { t, guide }),
+    h('div', {
+      className: 'apx-anims apx-review-anims',
+      role: 'group',
+      'aria-label': t('sectionReview'),
+    }, APPEARANCE_REVIEW_CHOICES.map((id) => {
+      const selected = subTheme === id
+      const titleKey = appearanceSettingsReviewKey(id)
+      return h('button', {
+        key: id,
+        type: 'button',
+        className: 'apx-card apx-review-card',
+        'aria-pressed': selected,
+        onClick: () => onSelect(id),
+      },
+      h('span', { className: 'apx-card-head' },
+        h(AppearanceSettingsIcon, { name: appearanceSettingsReviewGlyph(id), size: 18 }),
+        id === 'auto' && autoDetected
+          ? h('span', { className: 'apx-review-badge', title: detectedLabel }, detectedLabel)
+          : null,
+        h('span', { className: 'apx-card-check', 'aria-hidden': 'true' },
+          selected ? h(AppearanceSettingsIcon, { name: 'check', size: 15 }) : null)),
+      h('span', { className: 'apx-card-title' }, t(titleKey)),
+      h('span', { className: 'apx-card-hint' }, t(titleKey + 'Hint')))
+    })),
+    h(AppearanceSettingsCreative, {
+      title: t('creativeReview'),
+      hint: t('creativeReviewHint'),
+      busy: creatorBusy,
+      disabled: creatorBusy,
+      onClick: onCreate,
+    }),
+    h('div', { className: 'apx-preview-wrap apx-review-preview' },
+      h(AppearanceSettingsReviewPreview, {
+        t,
+        mainColor,
+        backgroundColor,
+        subTheme,
+        detected: detectedKind,
+        pixelSize,
+        pixelStyle,
+        pixelRadius,
+      }),
+      h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, chosenLabel))))
+}
+
 function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const snapshot = appearanceUseStore(store) || {}
   const stored = snapshot.config || {}
 
   /* Always hand the controls fully-typed values, even before the first Host snapshot lands. */
   const config = {
-    theme: stored.theme === 'pixel' || stored.theme === 'static' || stored.theme === 'response'
+    theme: stored.theme === 'pixel' || stored.theme === 'static'
+      || stored.theme === 'response' || stored.theme === 'review'
       ? stored.theme
       : 'native',
     palette: typeof stored.palette === 'string' ? stored.palette : 'auto',
@@ -661,6 +940,9 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
     pixelRadius: appearanceSettingsNumber(stored.pixelRadius, 0.25, 0, 0.5),
     composerWaveMode: stored.composerWaveMode === 'caret' ? 'caret' : 'whole',
     waveDamping: appearanceSettingsNumber(stored.waveDamping, 0, 0, 1),
+    reviewSubTheme: APPEARANCE_REVIEW_CHOICES.indexOf(stored.reviewSubTheme) >= 0
+      ? stored.reviewSubTheme
+      : 'auto',
     staticImage: typeof stored.staticImage === 'string' ? stored.staticImage : '',
     staticBlur: appearanceSettingsNumber(stored.staticBlur, 12, 0, 40),
     staticDim: appearanceSettingsNumber(stored.staticDim, 0.2, 0, 0.8),
@@ -670,7 +952,8 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const inactive = config.theme === 'native'
   const staticTheme = config.theme === 'static'
   const responseTheme = config.theme === 'response'
-  const motionDisabled = inactive || staticTheme || responseTheme
+  const reviewTheme = config.theme === 'review'
+  const motionDisabled = inactive || staticTheme || responseTheme || reviewTheme
   const palette = APPEARANCE_PALETTES.find((item) => item.id === config.palette) || null
   const customPalette = !palette || palette.id === 'custom'
 
@@ -814,6 +1097,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const setPixelRadius = (value) => write({ pixelRadius: value })
   const setComposerWaveMode = (value) => write({ composerWaveMode: value })
   const setWaveDamping = (value) => write({ waveDamping: value })
+  const setReviewSubTheme = (value) => write({ reviewSubTheme: value })
   const setStaticBlur = (value) => write({ staticBlur: value })
   const setStaticDim = (value) => write({ staticDim: value })
   const clearStaticImage = () => {
@@ -1038,6 +1322,21 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
       onChange: setPixelRadius,
     }))),
 
+  reviewTheme
+    ? h(AppearanceSettingsReviewSection, {
+      t,
+      subTheme: config.reviewSubTheme,
+      mainColor: config.mainColor,
+      backgroundColor: config.backgroundColor,
+      pixelSize: config.pixelSize,
+      pixelStyle: config.pixelStyle,
+      pixelRadius: config.pixelRadius,
+      creatorBusy,
+      onSelect: setReviewSubTheme,
+      onCreate: () => openCreator('review'),
+    })
+    : null,
+
   responseTheme
     ? h(AppearanceSettingsSection,
       { title: t('sectionResponse'), hint: t('sectionResponseHint') },
@@ -1159,7 +1458,9 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
     title: t('sectionMotion'),
     hint: staticTheme
       ? t('animationHintStatic')
-      : responseTheme ? t('animationHintResponse') : t('animationHint'),
+      : responseTheme
+        ? t('animationHintResponse')
+        : reviewTheme ? t('animationHintReview') : t('animationHint'),
     disabled: motionDisabled,
   },
   h('div', { className: 'apx-anims', role: 'group', 'aria-label': t('animation') },
@@ -1232,21 +1533,23 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
           style: { background: 'rgba(0, 0, 0, ' + config.staticDim + ')' },
         }),
         h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t('static')))))
-      : h(AppearanceSettingsSection, {
-        title: t('preview'),
-        hint: t('previewHint'),
-      },
-      h('div', { className: 'apx-preview-wrap' },
-        h(AppearanceSettingsPreview, {
-          t,
-          mainColor: config.mainColor,
-          backgroundColor: config.backgroundColor,
-          animation: config.animation,
-          pixelSize: config.pixelSize,
-          pixelStyle: config.pixelStyle,
-          pixelRadius: config.pixelRadius,
-        }),
-        h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t(config.animation)))),
+      : reviewTheme
+        ? null
+        : h(AppearanceSettingsSection, {
+          title: t('preview'),
+          hint: t('previewHint'),
+        },
+        h('div', { className: 'apx-preview-wrap' },
+          h(AppearanceSettingsPreview, {
+            t,
+            mainColor: config.mainColor,
+            backgroundColor: config.backgroundColor,
+            animation: config.animation,
+            pixelSize: config.pixelSize,
+            pixelStyle: config.pixelStyle,
+            pixelRadius: config.pixelRadius,
+          }),
+          h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t(config.animation)))),
 
   h(AppearanceSettingsMaterialSection, {
     t,
@@ -1461,6 +1764,59 @@ const appearanceSettingsCss = `
 }
 .apx-anim .apx-card-title { font-weight: 500; }
 .apx-anim[aria-pressed="true"] .apx-card-title { font-weight: 600; }
+.apx-review-anims { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.apx-review-card { padding: 10px 12px; }
+.apx-review-card .apx-card-head { gap: 6px 8px; }
+.apx-review-badge {
+  flex: none;
+  padding: 0 6px;
+  border: 0.5px solid var(--dsw-alias-state-business-primary);
+  border-radius: 999px;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.apx-review-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+.apx-review-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+.apx-review-status-icon {
+  display: inline-flex;
+  color: var(--dsw-alias-brand-primary);
+}
+.apx-review-status-text {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.apx-review-source {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-review-empty {
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-review-preview {
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+}
 .apx-creative {
   display: flex;
   align-items: center;
@@ -1890,6 +2246,7 @@ const appearanceSettingsCss = `
   .apx-segment { flex: 1 1 40%; }
   .apx-slider-label { width: auto; min-width: 64px; }
   .apx-custom-colors { grid-template-columns: 1fr; }
+  .apx-review-anims { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .apx-root *,

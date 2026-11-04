@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.0 — Retrospective theme
+
+### Themes
+- New **Retrospective (Review)** theme: content-guided pixel animation with four
+  exclusive 8-second sub-themes — Code, Investigation, Creation, and Discussion.
+- Active sessions sample the current Chat flow; new-session screens read the most
+  recent non-blank session read-only and release it immediately.
+- Sub-theme selection can follow content automatically or lock one of the four.
+- The canvas, pixel size/shape, and materials apply to the Retrospective theme
+  like the other custom themes.
+
+### Fixes and polish
+- Public README, Chinese README, plugin locale metadata, and package description
+  updated for the Retrospective theme.
+
 ## 1.7.0 — Initial public release
 
 First GitHub-ready release of the DSH Pixel Appearance plugin.

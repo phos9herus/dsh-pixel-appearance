@@ -1,6 +1,6 @@
 # DSH 像素外观（Pixel Appearance）
 
-为 **DSH（DeepSeek Harness）Web GUI** 提供的外观插件：原生 / 像素 / 响应 / 静态四种主题、动态像素背景、带时间尾迹的鼠标晕影、可调像素尺寸与圆角、画布材质，以及输入卡和侧边栏材质。
+为 **DSH（DeepSeek Harness）Web GUI** 提供的外观插件：原生 / 像素 / 响应 / 回顾 / 静态五种主题、动态像素背景、带时间尾迹的鼠标晕影、可调像素尺寸与圆角、画布材质，以及输入卡和侧边栏材质。
 
 ![DSH Pixel Appearance banner](docs/banner.svg)
 
@@ -20,6 +20,7 @@
   - 晕影样式可选静态 / 动态呼吸；
   - 尾迹：在鼠标位置留下主体色像素，按设置的保留时间逐渐淡出；
   - 波形阻尼：统一缩短所有波形的扩散距离并加快衰减。
+- **回顾**：由会话内容指导的像素主题。进行中的会话以当前会话内容为准；新会话界面则以最近一次非空会话为准，只读扫描后立即释放。主题会从文本、代码块、工具调用和提问中判断更像「代码」「调查」「创作」还是「讨论」，并绘制对应的独有 8 秒副主题动画。副主题菜单可选择「跟随内容」自动判定，也可手动锁定四种之一。
 - **静态**：在主页和侧边栏下层显示本地或网络图片，可调模糊与暗化。
 
 ### 外观控制
@@ -86,10 +87,11 @@
 
 打开 **设置 → 外观 → 主题**：
 
-- 主题卡片：原生、像素、响应、静态。
+- 主题卡片：原生、像素、响应、回顾、静态。
 - **画布样式**：所有自创主题可用（原生主题下禁用）。
-- **像素**：像素 / 响应主题下可用。
+- **像素**：像素 / 响应 / 回顾主题下可用。
 - **响应效果 / 输入卡波形 / 波形阻尼**：选择响应主题后出现。
+- **副主题动画**：选择回顾主题后出现。
 - **静态图片**：选择静态主题后出现。
 
 ### 响应主题交互
@@ -105,11 +107,19 @@
 
 **尾迹强度** 映射为 250–2000ms 保留时间；0 表示无尾迹。静态、动态晕影样式都支持尾迹。
 
+### 回顾主题的内容识别
+
+- 进行中的会话读取最新渲染的 Chat 行（文本、代码块、工具调用、问句），为四种副主题打分。
+- 新会话界面没有 Chat 行时，只读地 retain 最近一条非空会话，扫描其事件尾部后立即释放；失败或超时会退回会话标题与元信息。
+- 切换使用迟滞和最小间隔，避免每条新消息都切换副主题；空内容从「讨论」开始。
+- **副主题动画**面板包含「跟随内容」「代码」「调查」「创作」「讨论」。选择具体副主题会锁定；选择「跟随内容」恢复自动判定。
+- 四种动画共用 8 秒无缝循环和两色像素语言，不会出现在通用「动画内容」菜单中。
+
 ## 设置字段
 
 | 字段 | 默认值 | 说明 |
 | --- | --- | --- |
-| `theme` | `native` | `native` / `pixel` / `response` / `static` |
+| `theme` | `native` | `native` / `pixel` / `response` / `review` / `static` |
 | `palette` | `auto` | `auto` / `deepsea` / `neon` / `sunset` / `forest` / `paper` / `custom` |
 | `mainColor` / `backgroundColor` | — | 自定义配色 |
 | `animation` | `ripple` | `ripple` / `rain` / `aurora` / `pulse` |
@@ -121,6 +131,7 @@
 | `trailStrength` | `0` | 尾迹强度 0–1；0 无尾迹，1 约 2 秒 |
 | `composerWaveMode` | `whole` | `whole` / `caret` |
 | `waveDamping` | `0` | 波形阻尼 0–1 |
+| `reviewSubTheme` | `auto` | `auto`（跟随内容）/ `code` / `investigate` / `create` / `discuss` |
 | `canvasStyle` | `glass` | `glass` / `transparent` |
 | `composerStyle` / `sidebarStyle` | `glass` | `native` / `glass` / `transparent` |
 | `composerColor` / `sidebarColor` | — | 可选颜色 |
@@ -166,11 +177,12 @@ dsh-pixel-appearance/
 
 - Host 设置按 profile 保存；切换 profile 不会继承。
 - 响应主题读取 `[data-composer-card]`、`[data-chat-flow]`、`[data-chat-anchor-key]`、`[data-chat-flow-kind]` 等 DSH DOM 属性；DSH 更新后若变化，需要同步调整 `src/45-response.js`。
+- 回顾主题读取 `[data-conversation-content] [data-chat-anchor-key]` 与 `data-chat-flow-kind`；新会话界面使用 DSH 会话列表和只读 `sessions.retain(...)` 读取最近会话尾部后立即释放。若 DSH 更新了这些选择器、会话事件或读取接口，需要同步调整 `src/47-review.js`。
 - 本地静态图片以压缩 data URL 保存在 profile 的 `cordis.patch.yml` 中，过大的图片会让配置变重；建议使用适中的图片或 https 链接。
 - 远程图片能否加载取决于 Web GUI 的 CSP 与网络。
 - 超大窗口下像素格数上限约 9 万，实际像素尺寸可能被自动提高以保证流畅。
 - `prefers-reduced-motion` 下强制静态晕影、暂停连续循环并停用尾迹。
-- 与 `dsh-ascii-whales` 同时启用时，像素 / 响应主题可能叠加两层背景画布，建议只启用一个。
+- 与 `dsh-ascii-whales` 同时启用时，像素 / 响应 / 回顾主题可能叠加两层背景画布，建议只启用一个。
 
 ## 许可证
 

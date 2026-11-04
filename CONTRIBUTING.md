@@ -29,15 +29,18 @@ the Host-backed Config fields, and the pixel engine API.
    it.
 4. If you add a Host Config field, update `index.js`, `src/00-head.js`,
    `src/20-store.js`, `src/30-settings.js`, and `src/INTERFACE.md`.
-5. If you change a theme, test Native, Pixel, Response, and Static with the
-   default palette and at least one light and one dark palette.
+5. If you change a theme, test Native, Pixel, Response, Retrospective, and
+   Static with the default palette and at least one light and one dark palette.
 
 ## Compatibility
 
 The client half reads a small number of stable DSH DOM attributes
 (`[data-composer-card]`, `[data-chat-flow]`, `[data-chat-anchor-key]`,
-`[data-chat-flow-kind]`). If a DSH update changes them, update the selectors in
-`src/45-response.js` and note the supported DSH version in the pull request.
+`[data-chat-flow-kind]`). The Retrospective theme also reads
+`[data-conversation-content]` rows and uses the session list plus a read-only
+`sessions.retain(...)` tail read. If a DSH update changes these selectors or
+APIs, update `src/45-response.js` / `src/47-review.js` and note the supported DSH
+version in the pull request.
 
 ## Reporting issues
 

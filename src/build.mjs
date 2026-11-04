@@ -11,6 +11,7 @@ const fragments = [
   '30-settings.js',
   '40-runtime.js',
   '45-response.js',
+  '47-review.js',
   '99-tail.js',
 ]
 

@@ -11,7 +11,8 @@ Build order:
 4. `30-settings.js` — the `settings.section` React page.
 5. `40-runtime.js` — canvas scene mount, theme application, materials, creator launcher, `apply()`.
 6. `45-response.js` — Response theme event runtime (pointer halo, composer waves, Agent line waves).
-7. `99-tail.js` — `return { inject, apply }` and closing wrapper.
+7. `47-review.js` — Review (回顾) theme: content identification, guide building, four exclusive sub-theme animations, and the Review runtime.
+8. `99-tail.js` — `return { inject, apply }` and closing wrapper.
 
 All fragments share the factory scope. Do not use `import`/`export`; do not
 declare top-level names that another fragment is likely to use without the
@@ -219,3 +220,140 @@ material option — and its `::after` pixel outline — has been removed; compos
 and sidebar styles are now `native` / `glass` / `transparent` only. Sidebar
 material is applied to the whole column (`background-color` +
 `backdrop-filter`) while the sidebar root stays transparent.
+
+## Review theme (`47-review.js`)
+
+Theme id `review` (ui: 回顾 / Retrospective). It is a pixel-canvas theme like
+Pixel and Response and shares their token overrides, `canvasStyle`, composer
+and sidebar materials, and pixel settings. Its animation is **not** a looping
+item of `APPEARANCE_ANIMATIONS`: it is driven by conversation content through
+four sub-theme animations exclusive to this theme.
+
+Shared constants (declared in `00-head.js`):
+
+```js
+const APPEARANCE_REVIEW_SUBTHEMES = ['code', 'investigate', 'create', 'discuss']
+const APPEARANCE_REVIEW_CHOICES = ['auto'].concat(APPEARANCE_REVIEW_SUBTHEMES)
+```
+
+Host Config fields added for this theme: `theme` accepts `review`, and
+`reviewSubTheme` is `auto | code | investigate | create | discuss`
+(default `auto`). `auto` follows content; any other value locks that
+sub-theme while still deriving the animation seed/energy from content.
+`appearanceSettingsHostFields` must list `reviewSubTheme` so a stale Host
+shows the restart notice. Selecting the theme adds a Review card to the theme
+list and reveals the **Sub-theme animation** section only under `review`.
+
+### Content identification (design)
+
+A guide is derived from the conversation, never from model output:
+
+- **Active session**: read the rendered Chat flow
+  (`[data-conversation-content] [data-chat-anchor-key]` rows, capped to the
+  latest ~100). Use `data-chat-flow-kind` (`user`, `assistant-step`,
+  `tool-call`), `querySelectorAll('pre, code')` counts, question marks, and a
+  weighted keyword table (Chinese + English) to score the four sub-themes.
+  Structural signals: code blocks / file paths / code-ish tool calls → Code;
+  search / read / grep / web tools and question density → Investigation;
+  write / design / create / deliverable words and `write`/`edit` tools →
+  Creation; conversational markers, many turns, few tools, short turns →
+  Discussion.
+- **New session screen** (Chat flow has no rows, or the current Session row is
+  `blank`): pick the most recent non-blank Session from
+  `ctx.get('sessions').list` (sorted by `updatedAt`, excluding the current
+  Session), retain it read-only through
+  `ctx.sessions.retain(id, { source: 'gateway' })`, wait for `reference.ready`
+  with a short timeout, scan the latest `binding.eventSource` entries for
+  strings / event types (`tool`, `assistant`, `user`), then release the
+  reference immediately. If the read fails or times out, fall back to the
+  Session title and metadata. Never switch the UI to that Session.
+- Scores use a margin + hysteresis rule so the sub-theme does not flicker on
+  every mutation: a new kind only wins when its score clearly exceeds the
+  current one; ties prefer the previous kind, then Discussion (empty content
+  also starts with Discussion). Running the session updates the guide on
+  debounced Chat mutations / turn completion; a `manual lock` overrides the
+  detected kind.
+
+The detector exposes a stable guide object (plain JSON, no DOM references):
+
+```js
+{
+  kind: 'code' | 'investigate' | 'create' | 'discuss',
+  source: 'current' | 'recent',
+  title: string,            // guiding session title (may be '')
+  seed: uint32,             // hash of sampled content, stable per sample
+  energy: 0..1,             // volume / activity
+  density: 0..1,            // tool & code density
+  progress: 0..1,           // replay position (0 for a new session)
+  at: epoch ms,
+}
+```
+
+### Painter API
+
+```js
+/**
+ * Paint one Review frame. `animation` is one sub-theme id. `guide` is the
+ * object above (a neutral guide is used when it is missing). Every animation
+ * is a seamless 8 s loop: every time term is an integer harmonic of
+ * theta = 2π·frac(time / 8), and guide-derived phases stay constant per
+ * sample. Reuses the palette ramp, Bayer 8×8 dithering, pixelStyle /
+ * pixelRadius and one offscreen pixel layer, exactly like the other painters.
+ */
+function appearancePaintReview(canvas, {
+  mainColor, backgroundColor, animation, guide, time, cell,
+  pixelStyle, pixelRadius,
+})
+```
+
+The four sub-theme animations:
+
+- `code` — horizontal code lines scroll upward through a replay position;
+  each line has seed-derived length/indent, token gaps, and indent guide bars;
+  a cursor block and a scanning highlight follow `progress`.
+- `investigate` — a radar beam sweeps from a seed-derived centre, expanding
+  rings travel outward, and seed-scattered evidence pixels light up as the
+  beam crosses them and then fade.
+- `create` — an artistic fountain pen (split nib, grip section, cap band,
+  pocket clip and finial) writes a poem from left to right, completing one
+  horizontal line at a time. Seed-derived character strokes appear behind the
+  nib, a wet ink bead pools under the tip, and the pen lifts and travels to the
+  next line; after the last line the page and pen fade out before the loop
+  restarts.
+- `discuss` — two wave trains enter from the left and right edges and
+  interfere in the middle, with alternating left/right speech pulses and
+  travelling turn dots.
+
+### Runtime and settings API
+
+```js
+/**
+ * Create the Review runtime for the mounted scenes. `ctx` is the plugin
+ * context, `store` the Host-backed config store, `requestPaint` repaints the
+ * active canvas outside the animation frame (guide updates).
+ */
+function appearanceReviewCreateRuntime({ ctx, store, requestPaint })
+// → { activate(), deactivate(), onMutations(records), paint(canvas, rect, nowMs),
+//     guide(): Guide, isActive(), dispose() }
+
+/**
+ * React hook over the current guide snapshot; settings use it to show the
+ * detected kind/source without running detection themselves.
+ */
+function appearanceReviewUseGuide()
+// → { kind, source, title, ready, locked, manualKind }
+```
+
+`40-runtime.js` adds `review` to the theme mode switch, mounts the same
+`.appearance-pixel-canvas` layer, starts/stops the Review runtime with the
+other event runtimes, forwards MutationObserver records to
+`onMutations(records)`, and paints through `appearancePaintReview` with
+`time = now / 1000`. The continuous loop pauses for
+`prefers-reduced-motion` / hidden tabs like the other pixel themes, so under
+reduced motion only one static frame is painted.
+`appearanceStartCreator` accepts kind `review` and uses
+`t('creatorPromptReview')`. `30-settings.js` renders the sub-theme cards from
+`APPEARANCE_REVIEW_CHOICES` (auto + four), the current guide status, and an
+`AppearanceSettingsReviewPreview` canvas that calls `appearancePaintReview`
+with a demo guide. Selecting a card writes `reviewSubTheme`.
+
