@@ -45,7 +45,7 @@ window.__ModuleLoader__.load({
     ].join('')
     const APPEARANCE_STATIC_DEFAULT_IMAGE = 'data:image/svg+xml;charset=utf-8,'
       + encodeURIComponent(APPEARANCE_STATIC_DEFAULT_SVG)
-    const APPEARANCE_PLUGIN_ROOT = 'D:\\Data\\Agent\\dsh\\created plugins\\appearance'
+    const APPEARANCE_PLUGIN_ROOT = 'D:\\Data\\Agent\\dsh\\created plugins\\dsh-pixel-appearance'
     const APPEARANCE_PALETTES = [
       { id: 'auto', nameKey: 'paletteAuto', main: '#4D6BFE', bg: '', mode: 'auto' },
       { id: 'deepsea', nameKey: 'paletteDeepsea', main: '#4D6BFE', bg: '#151517', mode: 'dark' },
