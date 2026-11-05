@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: '@local/dsh-appearance-plugin',
+  id: 'dsh-pixel-appearance',
   factory(require) {
     const React = require('react')
     const h = React.createElement
