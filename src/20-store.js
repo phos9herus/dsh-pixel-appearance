@@ -144,6 +144,127 @@ function appearanceResolvedScheme(ctx) {
   }
 }
 
+/* -------------------------------------------------------------------------- *
+ * Main-colour gradient
+ * -------------------------------------------------------------------------- */
+
+/** Target ids in their configured order, with `auto` defaults. */
+function appearanceGradientTargetDefaults() {
+  const targets = {}
+  for (const group of APPEARANCE_GRADIENT_TARGET_GROUPS) {
+    for (const item of group.items) targets[item.id] = 'auto'
+  }
+  return targets
+}
+
+/** Parse the Host-stored JSON map; unknown ids/values fall back to `auto`. */
+function appearanceParseGradientTargets(raw) {
+  const targets = appearanceGradientTargetDefaults()
+  if (typeof raw !== 'string' || raw.trim() === '') return targets
+  let parsed = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    parsed = null
+  }
+  if (!parsed || typeof parsed !== 'object') return targets
+  for (const id of Object.keys(targets)) {
+    const value = parsed[id]
+    if (value === 'horizontal' || value === 'vertical' || value === 'radial' || value === 'off') {
+      targets[id] = value
+    }
+  }
+  return targets
+}
+
+/** Auto gradient end: rotate the main hue and lift its lightness. */
+function appearanceDeriveGradientEnd(mainColor) {
+  const color = appearanceParseColor(mainColor) || appearanceParseColor('#4D6BFE')
+  const red = color.r / 255
+  const green = color.g / 255
+  const blue = color.b / 255
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  const lightness = (max + min) / 2
+  let hue = 0
+  let saturation = 0
+  if (max !== min) {
+    const delta = max - min
+    saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min)
+    if (max === red) hue = ((green - blue) / delta + (green < blue ? 6 : 0)) / 6
+    else if (max === green) hue = ((blue - red) / delta + 2) / 6
+    else hue = ((red - green) / delta + 4) / 6
+  }
+  hue = (hue + 42 / 360) % 1
+  saturation = appearanceClamp(saturation * 0.92 + 0.06, 0.35, 0.9)
+  const light = appearanceClamp(lightness + 0.09, 0.35, 0.84)
+  const hueToChannel = (p, q, t) => {
+    let value = t
+    if (value < 0) value += 1
+    if (value > 1) value -= 1
+    if (value < 1 / 6) return p + (q - p) * 6 * value
+    if (value < 1 / 2) return q
+    if (value < 2 / 3) return p + (q - p) * (2 / 3 - value) * 6
+    return p
+  }
+  let channels
+  if (saturation === 0) {
+    channels = [light, light, light]
+  } else {
+    const q = light < 0.5 ? light * (1 + saturation) : light + saturation - light * saturation
+    const p = 2 * light - q
+    channels = [
+      hueToChannel(p, q, hue + 1 / 3),
+      hueToChannel(p, q, hue),
+      hueToChannel(p, q, hue - 1 / 3),
+    ]
+  }
+  return '#' + channels.map((channel) => {
+    const value = Math.round(appearanceClamp(channel, 0, 1) * 255).toString(16)
+    return value.length < 2 ? '0' + value : value
+  }).join('').toUpperCase()
+}
+
+/**
+ * Resolve gradient settings into the paint-time bundle:
+ * `{ mode, from, to, angle, strength, targets }`, or null when disabled.
+ */
+function appearanceResolveGradient(config, mainColor) {
+  const mode = config && (config.gradientMode === 'universal' || config.gradientMode === 'custom')
+    ? config.gradientMode
+    : null
+  if (!mode) return null
+  const baseMain = appearanceIsHex(mainColor) ? mainColor : APPEARANCE_DEFAULTS.mainColor
+  let from = baseMain
+  let to = appearanceDeriveGradientEnd(baseMain)
+  const presetId = typeof config.gradientPreset === 'string' ? config.gradientPreset : 'auto'
+  if (presetId === 'custom') {
+    from = appearanceIsHex(config.gradientFrom) ? config.gradientFrom : baseMain
+    to = appearanceIsHex(config.gradientTo) ? config.gradientTo : appearanceDeriveGradientEnd(baseMain)
+  } else {
+    const preset = APPEARANCE_GRADIENT_PRESETS.find((item) => item.id === presetId)
+    if (preset && preset.from && preset.to) {
+      from = preset.from
+      to = preset.to
+    }
+  }
+  const angle = typeof config.gradientAngle === 'number' && Number.isFinite(config.gradientAngle)
+    ? appearanceClamp(config.gradientAngle, 0, 360)
+    : 135
+  const strength = typeof config.gradientStrength === 'number' && Number.isFinite(config.gradientStrength)
+    ? appearanceClamp(config.gradientStrength, 0, 1)
+    : 1
+  return {
+    mode,
+    from,
+    to,
+    angle,
+    strength,
+    targets: appearanceParseGradientTargets(config.gradientTargets),
+  }
+}
+
+
 function appearanceColorWithAlpha(value, opacity) {
   const color = appearanceParseColor(value)
   if (color === null) return value
@@ -198,6 +319,7 @@ function appearanceEffective(config, scheme) {
       0,
       0.5,
     ),
+    gradient: appearanceResolveGradient(config, colors.mainColor),
     responseRadius: appearanceClamp(Number(config.responseRadius) || 180, 40, 400),
     haloStyle: config.haloStyle === 'dynamic' ? 'dynamic' : 'static',
     trailStrength: appearanceClamp(

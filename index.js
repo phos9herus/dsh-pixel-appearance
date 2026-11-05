@@ -31,6 +31,16 @@ export const Config = z.object({
   pixelSize: z.number().min(6).max(32).default(10).volatile(),
   pixelStyle: z.union(['square', 'rounded']).default('square').volatile(),
   pixelRadius: z.number().min(0).max(0.5).default(0.25).volatile(),
+  /** Pixel themes: main-colour gradient. `universal` = one canvas-space linear
+   * gradient for every pixel theme; `custom` = per-target mappings stored as a
+   * JSON string in `gradientTargets`. */
+  gradientMode: z.union(['off', 'universal', 'custom']).default('off').volatile(),
+  gradientPreset: z.string().default('auto').volatile(),
+  gradientFrom: z.string().default('').volatile(),
+  gradientTo: z.string().default('').volatile(),
+  gradientAngle: z.number().min(0).max(360).default(135).volatile(),
+  gradientStrength: z.number().min(0).max(1).default(1).volatile(),
+  gradientTargets: z.string().default('').volatile(),
   /** The Review theme: automatic sub-theme selection from content, or a manual lock. */
   reviewSubTheme: z.union(['auto', 'code', 'investigate', 'create', 'discuss']).default('auto').volatile(),
   /** The Response theme: composer wave origin, whole card edge or caret. */

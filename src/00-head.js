@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-pixel-appearance',
+  id: '@local/dsh-appearance-plugin',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -45,6 +45,7 @@ window.__ModuleLoader__.load({
     ].join('')
     const APPEARANCE_STATIC_DEFAULT_IMAGE = 'data:image/svg+xml;charset=utf-8,'
       + encodeURIComponent(APPEARANCE_STATIC_DEFAULT_SVG)
+    const APPEARANCE_PLUGIN_ROOT = 'D:\\Data\\Agent\\dsh\\created plugins\\appearance'
     const APPEARANCE_PALETTES = [
       { id: 'auto', nameKey: 'paletteAuto', main: '#4D6BFE', bg: '', mode: 'auto' },
       { id: 'deepsea', nameKey: 'paletteDeepsea', main: '#4D6BFE', bg: '#151517', mode: 'dark' },
@@ -53,6 +54,50 @@ window.__ModuleLoader__.load({
       { id: 'forest', nameKey: 'paletteForest', main: '#34D399', bg: '#0F1F1A', mode: 'dark' },
       { id: 'paper', nameKey: 'palettePaper', main: '#4338CA', bg: '#F7F4EC', mode: 'light' },
       { id: 'custom', nameKey: 'paletteCustom', main: null, bg: null, mode: 'custom' },
+    ]
+    /** Gradient presets: 'auto' follows the main colour, the rest are fixed pairs. */
+    const APPEARANCE_GRADIENT_PRESETS = [
+      { id: 'auto', nameKey: 'gradientPresetAuto', from: null, to: null },
+      { id: 'neon', nameKey: 'gradientPresetNeon', from: '#22D3EE', to: '#A855F7' },
+      { id: 'sunset', nameKey: 'gradientPresetSunset', from: '#F59E0B', to: '#F43F5E' },
+      { id: 'ice', nameKey: 'gradientPresetIce', from: '#7DD3FC', to: '#6366F1' },
+      { id: 'aurora', nameKey: 'gradientPresetAurora', from: '#34D399', to: '#818CF8' },
+    ]
+    /**
+     * Gradient targets grouped by pixel theme. Each target accepts
+     * `auto | horizontal | vertical | radial | off`; `auto` uses the
+     * theme-specific mapping designed for that animation / part / sub-theme.
+     */
+    const APPEARANCE_GRADIENT_TARGET_GROUPS = [
+      {
+        id: 'pixel',
+        titleKey: 'gradientTargetGroupPixel',
+        items: [
+          { id: 'ripple', labelKey: 'ripple' },
+          { id: 'rain', labelKey: 'rain' },
+          { id: 'aurora', labelKey: 'aurora' },
+          { id: 'pulse', labelKey: 'pulse' },
+        ],
+      },
+      {
+        id: 'response',
+        titleKey: 'gradientTargetGroupResponse',
+        items: [
+          { id: 'halo', labelKey: 'gradientTargetHalo' },
+          { id: 'waves', labelKey: 'gradientTargetWaves' },
+          { id: 'trail', labelKey: 'gradientTargetTrail' },
+        ],
+      },
+      {
+        id: 'review',
+        titleKey: 'gradientTargetGroupReview',
+        items: [
+          { id: 'code', labelKey: 'reviewCode' },
+          { id: 'investigate', labelKey: 'reviewInvestigate' },
+          { id: 'create', labelKey: 'reviewCreate' },
+          { id: 'discuss', labelKey: 'reviewDiscuss' },
+        ],
+      },
     ]
 
     const ZH = {
@@ -124,12 +169,44 @@ window.__ModuleLoader__.load({
       canvasGlass: '毛玻璃',
       canvasTransparent: '透明',
       sectionPixel: '像素',
-      sectionPixelHint: '像素尺寸与样式作用于像素和响应主题的动态像素背景。默认样式保持当前的方形像素；圆角样式下所有像素使用圆角，圆角半径按像素尺寸的比例自动适配。',
+      sectionPixelHint: '像素尺寸与样式作用于像素和响应主题的动态像素背景。默认样式保持当前的方形像素；圆角样式下所有像素使用圆角，圆角半径按像素尺寸的比例自动适配。下方的渐变可为主体色叠加两色渐变。',
       pixelSize: '像素尺寸',
       pixelStyle: '像素样式',
       pixelStyleDefault: '默认',
       pixelStyleRounded: '圆角',
       pixelRadius: '圆角半径',
+      sectionGradient: '渐变',
+      gradientHint: '为主体色叠加两色渐变。通用模式用同一套画布线性渐变作用到所有像素主题；个性化模式可逐动画、逐部位、逐副主题指定取色方式。',
+      gradientMode: '渐变模式',
+      gradientModeOff: '关闭',
+      gradientModeUniversal: '通用',
+      gradientModeCustom: '个性化',
+      gradientPreset: '渐变方案',
+      gradientPresetAuto: '自动',
+      gradientPresetNeon: '霓虹',
+      gradientPresetSunset: '日落',
+      gradientPresetIce: '冰蓝',
+      gradientPresetAurora: '极光',
+      gradientFrom: '渐变起色',
+      gradientTo: '渐变终色',
+      gradientAngle: '渐变角度',
+      gradientStrength: '渐变强度',
+      gradientHintUniversal: '通用模式：整块画布按角度做线性渐变，所有像素主题、动画与副主题共用同一种取色方式。',
+      gradientHintCustom: '个性化模式：每个动画、部位与副主题按“自然”映射取色，也可以单独改成横向、纵向、径向或关闭。',
+      gradientAdvanced: '个性化映射（高级）',
+      gradientAdvancedHint: '为每个目标单独选择渐变取色方式；“自然”使用为该目标设计的映射。',
+      gradientTargetGroupPixel: '像素主题',
+      gradientTargetGroupResponse: '响应主题',
+      gradientTargetGroupReview: '回顾主题',
+      gradientTargetHalo: '晕影',
+      gradientTargetWaves: '波形',
+      gradientTargetTrail: '尾迹',
+      gradientMappingAuto: '自然',
+      gradientMappingHorizontal: '横向',
+      gradientMappingVertical: '纵向',
+      gradientMappingRadial: '径向',
+      gradientMappingOff: '关闭',
+      gradientResetTargets: '恢复自然映射',
       sectionResponse: '响应效果',
       sectionResponseHint: '静态保持当前晕影效果；动态样式让晕影半径与亮度按呼吸节奏缓慢起伏。晕影半径可调；尾迹强度描述像素尾迹的保留时间，0 表示无尾迹。',
       responseRadius: '晕影半径',
@@ -144,7 +221,7 @@ window.__ModuleLoader__.load({
       composerWaveCaret: '光标',
       sectionDamping: '波形阻尼',
       waveDamping: '波形阻尼',
-      waveDampingHint: '100% 时波形极快衰减，不会扩散到整个画布；0% 为当前效果。阻尼作用于点击、输入卡和 Agent 新消息产生的所有波形。',
+      waveDampingHint: '100% 时波形极快衰减，不会扩散到整个画布；0% 为当前效果。阻尼作用于点击、输入卡和 Agent 新消息产生的所有波形；波形的自然渐变会随阻尼收束，在波形消失前到达目标色。',
       sectionComposer: '输入卡样式',
       composerHint: '主页面输入卡的材质、颜色和透明度。',
       sectionSidebar: '侧边栏样式',
@@ -177,9 +254,9 @@ window.__ModuleLoader__.load({
       staticDim: '图片暗化',
       staticPreviewHint: '预览跟随当前图片、模糊和暗化设置。',
       animationHintStatic: '像素主题下生效；静态主题使用图片背景，不使用像素动画。',
-      creatorPromptTheme: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的视觉主题。目标是让新主题出现在“设置 > 外观 > 主题”菜单中。请在当前插件根目录（包含 index.js、src/INTERFACE.md 和 src/build.mjs 的目录）内工作；请先阅读 src/INTERFACE.md 和现有 client.js 生成源码，沿用 Host-backed Config、配色组合和像素引擎接口；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
-      creatorPromptAnimation: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的像素背景动画。目标是让新动画出现在“设置 > 外观 > 动画内容”菜单中。请在当前插件根目录内工作；请先阅读 src/INTERFACE.md 和现有像素引擎实现，新增一个无缝循环、两色有序抖动的动画，并沿用现有菜单和 Host-backed Config；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
-      creatorPromptReview: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的“回顾”主题副主题动画。目标是让新动画出现在“设置 > 外观 > 主题 > 回顾 > 副主题动画”菜单中。请在当前插件根目录内工作；请先阅读 src/INTERFACE.md、src/47-review.js（回顾主题的动画与内容识别）和现有 client.js 生成源码，沿用两色色阶、Bayer 抖动、像素尺寸/圆角以及 Host-backed Config；新副主题动画必须保持 8 秒无缝循环、只出现在“回顾”主题下，并能像现有四种副主题一样由会话内容指导；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptTheme: `请使用创造模式为当前 DSH 外观插件创作一个新的视觉主题。目标是让新主题出现在“设置 > 外观 > 主题”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md 和现有 client.js 生成源码，沿用 Host-backed Config、配色组合和像素引擎接口；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptAnimation: `请使用创造模式为当前 DSH 外观插件创作一个新的像素背景动画。目标是让新动画出现在“设置 > 外观 > 动画内容”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md 和现有像素引擎实现，新增一个无缝循环、两色有序抖动的动画，并沿用现有菜单和 Host-backed Config；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptReview: `请使用创造模式为当前 DSH 外观插件创作一个新的“回顾”主题副主题动画。目标是让新动画出现在“设置 > 外观 > 主题 > 回顾 > 副主题动画”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md、${APPEARANCE_PLUGIN_ROOT}\\src\\47-review.js（回顾主题的动画与内容识别）和现有 client.js 生成源码，沿用两色色阶、Bayer 抖动、像素尺寸/圆角以及 Host-backed Config；新副主题动画必须保持 8 秒无缝循环、只出现在“回顾”主题下，并能像现有四种副主题一样由会话内容指导；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
     }
     const EN = {
       nav: 'Appearance',
@@ -250,12 +327,44 @@ window.__ModuleLoader__.load({
       canvasGlass: 'Frosted glass',
       canvasTransparent: 'Transparent',
       sectionPixel: 'Pixels',
-      sectionPixelHint: 'Pixel size and style apply to the animated pixel backgrounds of the Pixel and Response themes. Default keeps the current square pixels; Rounded rounds every pixel, and the corner radius scales with the pixel size.',
+      sectionPixelHint: 'Pixel size and style apply to the animated pixel backgrounds of the Pixel and Response themes. Default keeps the current square pixels; Rounded rounds every pixel, and the corner radius scales with the pixel size. The gradient below adds a two-colour gradient to the main colour.',
       pixelSize: 'Pixel size',
       pixelStyle: 'Pixel style',
       pixelStyleDefault: 'Default',
       pixelStyleRounded: 'Rounded',
       pixelRadius: 'Corner radius',
+      sectionGradient: 'Gradient',
+      gradientHint: 'Add a two-colour gradient to the main colour. Universal applies one canvas-space linear gradient to every pixel theme; Personal lets you choose the colouring per animation, per part, and per sub-theme.',
+      gradientMode: 'Gradient mode',
+      gradientModeOff: 'Off',
+      gradientModeUniversal: 'Universal',
+      gradientModeCustom: 'Personal',
+      gradientPreset: 'Gradient palette',
+      gradientPresetAuto: 'Auto',
+      gradientPresetNeon: 'Neon',
+      gradientPresetSunset: 'Sunset',
+      gradientPresetIce: 'Ice',
+      gradientPresetAurora: 'Aurora',
+      gradientFrom: 'Gradient start',
+      gradientTo: 'Gradient end',
+      gradientAngle: 'Gradient angle',
+      gradientStrength: 'Gradient strength',
+      gradientHintUniversal: 'Universal: one linear gradient across the whole canvas, shared by every pixel theme, animation, and sub-theme.',
+      gradientHintCustom: 'Personal: every animation, part, and sub-theme uses its own natural mapping, and each one can be switched to horizontal, vertical, radial, or off.',
+      gradientAdvanced: 'Personal mappings (advanced)',
+      gradientAdvancedHint: 'Choose the gradient colouring for each target; Natural uses the mapping designed for it.',
+      gradientTargetGroupPixel: 'Pixel theme',
+      gradientTargetGroupResponse: 'Response theme',
+      gradientTargetGroupReview: 'Retrospective theme',
+      gradientTargetHalo: 'Halo',
+      gradientTargetWaves: 'Waves',
+      gradientTargetTrail: 'Trail',
+      gradientMappingAuto: 'Natural',
+      gradientMappingHorizontal: 'Horizontal',
+      gradientMappingVertical: 'Vertical',
+      gradientMappingRadial: 'Radial',
+      gradientMappingOff: 'Off',
+      gradientResetTargets: 'Reset to natural',
       sectionResponse: 'Response effect',
       sectionResponseHint: 'Static keeps the current halo; Dynamic makes the halo radius and brightness breathe slowly. The halo radius is adjustable; Trail strength controls how long stamped trail pixels survive, and 0 disables the trail.',
       responseRadius: 'Halo radius',
@@ -270,7 +379,7 @@ window.__ModuleLoader__.load({
       composerWaveCaret: 'Caret',
       sectionDamping: 'Wave damping',
       waveDamping: 'Wave damping',
-      waveDampingHint: 'At 100% waves decay almost immediately and never reach the whole canvas; 0% keeps the current effect. Applies to every wave from clicks, the composer, and new Agent messages.',
+      waveDampingHint: 'At 100% waves decay almost immediately and never reach the whole canvas; 0% keeps the current effect. Applies to every wave from clicks, the composer, and new Agent messages; the natural wave gradient also shortens with damping so it reaches its target colour before the wave fades out.',
       sectionComposer: 'Composer',
       composerHint: 'Material, colour, and opacity of the main-page composer card.',
       sectionSidebar: 'Sidebar',
@@ -303,9 +412,9 @@ window.__ModuleLoader__.load({
       staticDim: 'Picture dim',
       staticPreviewHint: 'The preview follows the current picture, blur, and dim settings.',
       animationHintStatic: 'Applies to the Pixel theme; the Static theme uses a picture instead of a pixel animation.',
-      creatorPromptTheme: `Use Creator mode to author a new visual theme for the current DSH Pixel Appearance plugin. The new theme must appear in Settings > Appearance > Theme. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md and the existing client.js sources, reuse the Host-backed Config, palette, and pixel engine interfaces, then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
-      creatorPromptAnimation: `Use Creator mode to author a new pixel background animation for the current DSH Pixel Appearance plugin. The new animation must appear in Settings > Appearance > Animation. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md and the existing pixel engine, add a seamless, two-colour ordered-dither animation, and reuse the existing menu and Host-backed Config; then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
-      creatorPromptReview: `Use Creator mode to author a new sub-theme animation for the Retrospective (回顾) theme of the current DSH Pixel Appearance plugin. The new animation must appear in Settings > Appearance > Theme > Retrospective > Sub-theme animation. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md, src/47-review.js (the Review theme's animations and content detection) and the existing generated client.js sources, reuse the two-colour ramp, Bayer dithering, pixel size/corner settings, and the Host-backed Config; the new sub-theme animation must keep an 8-second seamless loop, appear only under the Retrospective theme, and be guidable by conversation content like the existing four; then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptTheme: `Use Creator mode to author a new visual theme for the current DSH Appearance plugin. The new theme must appear in Settings > Appearance > Theme. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md and the existing client.js sources, reuse the Host-backed Config, palette, and pixel engine interfaces, then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptAnimation: `Use Creator mode to author a new pixel background animation for the current DSH Appearance plugin. The new animation must appear in Settings > Appearance > Animation. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md and the existing pixel engine, add a seamless, two-colour ordered-dither animation, and reuse the existing menu and Host-backed Config; then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptReview: `Use Creator mode to author a new sub-theme animation for the Retrospective (回顾) theme of the current DSH Appearance plugin. The new animation must appear in Settings > Appearance > Theme > Retrospective > Sub-theme animation. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md, ${APPEARANCE_PLUGIN_ROOT}\\src\\47-review.js (the Review theme's animations and content detection) and the existing generated client.js sources, reuse the two-colour ramp, Bayer dithering, pixel size/corner settings, and the Host-backed Config; the new sub-theme animation must keep an 8-second seamless loop, appear only under the Retrospective theme, and be guidable by conversation content like the existing four; then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
     }
 
     const APPEARANCE_DEFAULTS = {
@@ -328,6 +437,13 @@ window.__ModuleLoader__.load({
       pixelSize: 10,
       pixelStyle: 'square',
       pixelRadius: 0.25,
+      gradientMode: 'off',
+      gradientPreset: 'auto',
+      gradientFrom: '',
+      gradientTo: '',
+      gradientAngle: 135,
+      gradientStrength: 1,
+      gradientTargets: '',
       composerWaveMode: 'whole',
       waveDamping: 0,
       reviewSubTheme: 'auto',

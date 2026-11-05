@@ -1545,19 +1545,79 @@ function appearancePaintReview(canvas, options) {
     EngineClamp(Math.round(color.b), 0, 255),
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  const gradientMapping = gradient ? EngineGradientTargetMapping(gradient, animation) : 'off'
+  let gradientPalettes = null
+  let gradientMode = 'off'
+  let gradientSpot = null
+  if (gradient && gradientMapping !== 'off') {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') gradientMode = 'linear'
+    else if (gradientMapping === 'auto') gradientMode = EngineGradientNaturalMapping(animation)
+    else gradientMode = gradientMapping
+    if (gradientMode === 'spot') {
+      const distance = spec.data && spec.data.dist
+      if (distance && distance.length >= cols * rows) gradientSpot = distance
+      else gradientMode = 'radial'
+    }
+  }
   let levels = spec.levels
   if (!levels || levels.length < cols * rows) {
     levels = new Uint8Array(cols * rows)
     spec.levels = levels
   }
   let index = 0
-  for (let row = 0; row < rows; row += 1) {
-    const rowBase = (row & 7) << 3
-    for (let col = 0; col < cols; col += 1, index += 1) {
-      levels[index] = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+  if (gradientPalettes) {
+    const words = entry.layerWords
+    const data = entry.layerImage.data
+    const angle = gradient.angle
+    for (let row = 0; row < rows; row += 1) {
+      const rowBase = (row & 7) << 3
+      const v = (row + 0.5) / rows
+      for (let col = 0; col < cols; col += 1, index += 1) {
+        const level = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+        levels[index] = level
+        if (level <= 0) {
+          if (words) {
+            words[index] = 0
+          } else {
+            const offset = index * 4
+            data[offset] = 0
+            data[offset + 1] = 0
+            data[offset + 2] = 0
+            data[offset + 3] = 0
+          }
+          continue
+        }
+        const factor = EngineGradientCanvasFactor(
+          gradientMode,
+          (col + 0.5) / cols,
+          v,
+          angle,
+          gradientSpot ? gradientSpot[index] : 0,
+        )
+        const variantIndex = EngineGradientVariantIndex(gradientPalettes, factor)
+        if (words) {
+          words[index] = gradientPalettes.packed[variantIndex][level]
+        } else {
+          const color = gradientPalettes.bytes[variantIndex][level]
+          const offset = index * 4
+          data[offset] = color[0]
+          data[offset + 1] = color[1]
+          data[offset + 2] = color[2]
+          data[offset + 3] = color[3]
+        }
+      }
     }
+  } else {
+    for (let row = 0; row < rows; row += 1) {
+      const rowBase = (row & 7) << 3
+      for (let col = 0; col < cols; col += 1, index += 1) {
+        levels[index] = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+      }
+    }
+    EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   }
-  EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   entry.layerContext.putImageData(entry.layerImage, 0, 0)
   context.imageSmoothingEnabled = false
   context.clearRect(0, 0, width, height)
@@ -2023,6 +2083,7 @@ function appearanceReviewCreateRuntime(options) {
         cell: effective.pixelSize,
         pixelStyle: effective.pixelStyle,
         pixelRadius: effective.pixelRadius,
+        gradient: effective.gradient,
       })
     } catch (cause) {
       console.error('appearance: review paint failed', cause)

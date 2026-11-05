@@ -1,8 +1,8 @@
 {
   "name": "dsh-pixel-appearance",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
-  "description": "Pixel, reactive, static, native, and content-guided Retrospective themes for the DSH Web GUI, with animated pixel backgrounds, pointer halos, configurable pixel geometry, canvas materials, and composer and sidebar materials.",
+  "description": "Pixel, reactive, static, native, and content-guided Retrospective themes for the DSH Web GUI, with animated pixel backgrounds, pointer halos, configurable pixel geometry, canvas materials, composer and sidebar materials, and configurable two-colour main-colour gradients.",
   "license": "MIT",
   "author": "dsh-pixel-appearance contributors",
   "repository": {
@@ -20,6 +20,7 @@
     "appearance",
     "theme",
     "pixel-art",
+    "gradient",
     "retrospective",
     "review",
     "canvas",

@@ -74,6 +74,41 @@ function appearanceResponseWaveAmp(strength, radius, reach, damping) {
   return strength * edge * Math.pow(1 - progress, amount * 4)
 }
 
+/** Length of the amplitude fade at the end of a wave's travel, in CSS px. */
+const APPEARANCE_RESPONSE_WAVE_EDGE_FADE = 120
+/**
+ * Amplitude ratio at which a wave counts as gone for the natural gradient:
+ * the target colour must be reached while the wave still has 20% of its
+ * amplitude left, i.e. shortly before it disappears.
+ */
+const APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE = 0.2
+
+/**
+ * Distance from the wave origin at which the natural wave gradient should
+ * arrive at its target colour.
+ *
+ * Damping both shortens the reach and decays the amplitude with distance, so
+ * a damped wave visually dies long before `reach`. Normalising the gradient by
+ * the damped amplitude curve keeps the A→B shift inside the visible part of
+ * the wave instead of stretching it across the whole canvas:
+ *
+ *   damping = 0    → 120 px edge fade only: stop where 20% of it remains
+ *   damping > 0    → radius where (1 − r/reach)^(4·damping) = 20%
+ *
+ * The result is used as the wave's per-wave `gradientSpan` by the painters.
+ */
+function appearanceResponseWaveGradientSpan(reach, damping) {
+  const safeReach = Math.max(1, Number(reach) || 0)
+  const amount = appearanceClamp(Number(damping) || 0, 0, 1)
+  let progress
+  if (amount <= 0) {
+    progress = (safeReach - APPEARANCE_RESPONSE_WAVE_EDGE_FADE * APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE) / safeReach
+  } else {
+    progress = 1 - Math.pow(APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE, 1 / (4 * amount))
+  }
+  return Math.max(1, safeReach * appearanceClamp(progress, 0.05, 1))
+}
+
 /**
  * Breathing multiplier for the pointer halo. Static is exactly the previous
  * halo (scale 1, strength 1); dynamic oscillates the radius by ±12% and the
@@ -464,6 +499,7 @@ function appearanceResponseCreateRuntime(options) {
         radius,
         width: wave.width,
         strength,
+        gradientSpan: appearanceResponseWaveGradientSpan(reach, effective.waveDamping),
       })
     }
 
@@ -507,6 +543,7 @@ function appearanceResponseCreateRuntime(options) {
         halos,
         trail,
         waves: localWaves,
+        gradient: effective.gradient,
       })
     } catch (cause) {
       console.error('appearance: response paint failed', cause)

@@ -41,6 +41,13 @@ const appearanceSettingsHostFields = {
   pixelSize: true,
   pixelStyle: true,
   pixelRadius: true,
+  gradientMode: true,
+  gradientPreset: true,
+  gradientFrom: true,
+  gradientTo: true,
+  gradientAngle: true,
+  gradientStrength: true,
+  gradientTargets: true,
   haloStyle: true,
   trailStrength: true,
   reviewSubTheme: true,
@@ -414,6 +421,7 @@ function AppearanceSettingsPreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
 
@@ -450,6 +458,7 @@ function AppearanceSettingsPreview({
           cell: Math.max(2, Math.round(pixelSize)),
           pixelStyle,
           pixelRadius,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -489,7 +498,7 @@ function AppearanceSettingsPreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, animation, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, animation, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -516,6 +525,7 @@ function AppearanceSettingsResponsePreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
 
@@ -566,6 +576,7 @@ function AppearanceSettingsResponsePreview({
       const dampingValue = appearanceClamp(Number(damping) || 0, 0, 1)
       const baseReach = Math.hypot(width, height) * 0.62
       const reach = appearanceResponseWaveReach(baseReach, dampingValue)
+      const gradientSpan = appearanceResponseWaveGradientSpan(reach, dampingValue)
       const circlePhase = (time * 0.52) % 1
       const cardPhase = (time * 0.36 + 0.55) % 1
       const circleRadius = circlePhase * reach
@@ -578,6 +589,7 @@ function AppearanceSettingsResponsePreview({
           radius: circleRadius,
           width: 34,
           strength: appearanceResponseWaveAmp(0.9, circleRadius, reach, dampingValue),
+          gradientSpan,
         },
         composerWaveMode === 'caret'
           ? {
@@ -587,6 +599,7 @@ function AppearanceSettingsResponsePreview({
             radius: cardRadius,
             width: 34,
             strength: appearanceResponseWaveAmp(0.9, cardRadius, reach, dampingValue),
+            gradientSpan,
           }
           : {
             kind: 'rect',
@@ -598,6 +611,7 @@ function AppearanceSettingsResponsePreview({
             radius: cardRadius,
             width: 36,
             strength: appearanceResponseWaveAmp(0.9, cardRadius, reach, dampingValue),
+            gradientSpan,
           },
       ]
       try {
@@ -613,6 +627,7 @@ function AppearanceSettingsResponsePreview({
           halos,
           trail,
           waves,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -655,7 +670,7 @@ function AppearanceSettingsResponsePreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, radius, haloStyle, trailStrength, composerWaveMode, damping, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, radius, haloStyle, trailStrength, composerWaveMode, damping, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -729,6 +744,7 @@ function AppearanceSettingsReviewPreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
   const chosen = subTheme === 'auto'
@@ -781,6 +797,7 @@ function AppearanceSettingsReviewPreview({
           cell: Math.max(2, Math.round(pixelSize)),
           pixelStyle,
           pixelRadius,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -820,7 +837,7 @@ function AppearanceSettingsReviewPreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, chosen, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, chosen, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -844,6 +861,7 @@ function AppearanceSettingsReviewSection({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
   creatorBusy,
   onSelect,
   onCreate,
@@ -906,6 +924,7 @@ function AppearanceSettingsReviewSection({
         pixelSize,
         pixelStyle,
         pixelRadius,
+        gradient,
       }),
       h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, chosenLabel))))
 }
@@ -938,6 +957,18 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
     pixelSize: appearanceSettingsNumber(stored.pixelSize, 10, 6, 32),
     pixelStyle: stored.pixelStyle === 'rounded' ? 'rounded' : 'square',
     pixelRadius: appearanceSettingsNumber(stored.pixelRadius, 0.25, 0, 0.5),
+    gradientMode: stored.gradientMode === 'universal' || stored.gradientMode === 'custom'
+      ? stored.gradientMode
+      : 'off',
+    gradientPreset: (stored.gradientPreset === 'custom'
+      || APPEARANCE_GRADIENT_PRESETS.some((item) => item.id === stored.gradientPreset))
+      ? stored.gradientPreset
+      : 'auto',
+    gradientFrom: typeof stored.gradientFrom === 'string' ? stored.gradientFrom : '',
+    gradientTo: typeof stored.gradientTo === 'string' ? stored.gradientTo : '',
+    gradientAngle: appearanceSettingsNumber(stored.gradientAngle, 135, 0, 360),
+    gradientStrength: appearanceSettingsNumber(stored.gradientStrength, 1, 0, 1),
+    gradientTargets: typeof stored.gradientTargets === 'string' ? stored.gradientTargets : '',
     composerWaveMode: stored.composerWaveMode === 'caret' ? 'caret' : 'whole',
     waveDamping: appearanceSettingsNumber(stored.waveDamping, 0, 0, 1),
     reviewSubTheme: APPEARANCE_REVIEW_CHOICES.indexOf(stored.reviewSubTheme) >= 0
@@ -956,6 +987,18 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const motionDisabled = inactive || staticTheme || responseTheme || reviewTheme
   const palette = APPEARANCE_PALETTES.find((item) => item.id === config.palette) || null
   const customPalette = !palette || palette.id === 'custom'
+  const gradient = appearanceResolveGradient(config, config.mainColor)
+  const gradientTargets = appearanceParseGradientTargets(config.gradientTargets)
+  const gradientActive = config.gradientMode !== 'off'
+  const gradientAutoFrom = appearanceSettingsHex(config.mainColor, '#4D6BFE')
+  const gradientAutoTo = appearanceDeriveGradientEnd(gradientAutoFrom)
+  const gradientMappingOptions = [
+    { value: 'auto', label: t('gradientMappingAuto') },
+    { value: 'horizontal', label: t('gradientMappingHorizontal') },
+    { value: 'vertical', label: t('gradientMappingVertical') },
+    { value: 'radial', label: t('gradientMappingRadial') },
+    { value: 'off', label: t('gradientMappingOff') },
+  ]
 
   const [writeFailed, setWriteFailed] = React.useState(false)
   const [staleHost, setStaleHost] = React.useState(false)
@@ -1095,6 +1138,29 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const setPixelSize = (value) => write({ pixelSize: value })
   const setPixelStyle = (value) => write({ pixelStyle: value })
   const setPixelRadius = (value) => write({ pixelRadius: value })
+  const setGradientMode = (value) => write({ gradientMode: value })
+  const setGradientPreset = (id) => {
+    const preset = APPEARANCE_GRADIENT_PRESETS.find((item) => item.id === id) || null
+    if (preset && preset.from && preset.to) {
+      write({ gradientPreset: id, gradientFrom: preset.from, gradientTo: preset.to })
+    } else {
+      write({ gradientPreset: id, gradientFrom: '', gradientTo: '' })
+    }
+  }
+  const setGradientColor = (key, value) => {
+    const patch = { gradientPreset: 'custom' }
+    patch[key] = value
+    write(patch)
+  }
+  const setGradientAngle = (value) => write({ gradientAngle: value })
+  const setGradientStrength = (value) => write({ gradientStrength: value })
+  const setGradientTarget = (id, value) => {
+    const next = { ...gradientTargets }
+    if (value === 'auto') delete next[id]
+    else next[id] = value
+    write({ gradientTargets: Object.keys(next).length === 0 ? '' : JSON.stringify(next) })
+  }
+  const resetGradientTargets = () => write({ gradientTargets: '' })
   const setComposerWaveMode = (value) => write({ composerWaveMode: value })
   const setWaveDamping = (value) => write({ waveDamping: value })
   const setReviewSubTheme = (value) => write({ reviewSubTheme: value })
@@ -1320,7 +1386,114 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
       disabled: inactive || staticTheme || config.pixelStyle !== 'rounded',
       format: (number) => (Math.round(Number(number) * config.pixelSize * 10) / 10) + 'px',
       onChange: setPixelRadius,
-    }))),
+    })),
+  h('div', { className: 'apx-grad' },
+    h('div', { className: 'apx-grad-head' },
+      h('span', { className: 'apx-grad-title' }, t('sectionGradient')),
+      h('span', { className: 'apx-grad-sub' }, t('gradientMode'))),
+    h(AppearanceSettingsSegmented, {
+      label: t('gradientMode'),
+      value: config.gradientMode,
+      disabled: inactive || staticTheme,
+      options: [
+        { value: 'off', label: t('gradientModeOff') },
+        { value: 'universal', label: t('gradientModeUniversal') },
+        { value: 'custom', label: t('gradientModeCustom') },
+      ],
+      onChange: setGradientMode,
+    }),
+    gradientActive
+      ? h('div', { className: 'apx-grad-body' },
+        h('p', { className: 'apx-grad-hint' },
+          t(config.gradientMode === 'universal' ? 'gradientHintUniversal' : 'gradientHintCustom')),
+        h('div', {
+          className: 'apx-grad-presets',
+          role: 'group',
+          'aria-label': t('gradientPreset'),
+        }, APPEARANCE_GRADIENT_PRESETS.map((item) => {
+          const selected = config.gradientPreset === item.id
+          const from = item.id === 'auto' ? gradientAutoFrom : (item.from || gradient.from)
+          const to = item.id === 'auto' ? gradientAutoTo : (item.to || gradient.to)
+          return h('button', {
+            key: item.id,
+            type: 'button',
+            className: 'apx-grad-preset',
+            'aria-pressed': selected,
+            onClick: () => setGradientPreset(item.id),
+          },
+          h('span', {
+            className: 'apx-grad-swatch',
+            'aria-hidden': 'true',
+            style: { background: 'linear-gradient(90deg, ' + from + ', ' + to + ')' },
+          }),
+          h('span', { className: 'apx-grad-preset-name' }, t(item.nameKey)))
+        })),
+        h('div', { className: 'apx-custom-colors apx-grad-colors' },
+          h(AppearanceSettingsColorField, {
+            label: t('gradientFrom'),
+            value: gradient.from,
+            fallback: appearanceSettingsHex(config.mainColor, '#4D6BFE'),
+            autoLabel: t('gradientPresetAuto'),
+            onChange: (value) => setGradientColor('gradientFrom', value),
+          }),
+          h(AppearanceSettingsColorField, {
+            label: t('gradientTo'),
+            value: gradient.to,
+            fallback: appearanceSettingsHex(config.mainColor, '#4D6BFE'),
+            autoLabel: t('gradientPresetAuto'),
+            onChange: (value) => setGradientColor('gradientTo', value),
+          })),
+        config.gradientMode === 'universal'
+          ? h(AppearanceSettingsSlider, {
+            label: t('gradientAngle'),
+            value: config.gradientAngle,
+            min: 0,
+            max: 360,
+            step: 1,
+            format: (number) => Math.round(Number(number)) + '°',
+            onChange: setGradientAngle,
+          })
+          : null,
+        h(AppearanceSettingsSlider, {
+          label: t('gradientStrength'),
+          value: config.gradientStrength,
+          min: 0,
+          max: 1,
+          step: 0.01,
+          format: (number) => Math.round(Number(number) * 100) + '%',
+          onChange: setGradientStrength,
+        }),
+        config.gradientMode === 'custom'
+          ? h('details', { className: 'apx-grad-advanced' },
+            h('summary', null, t('gradientAdvanced')),
+            h('p', { className: 'apx-grad-advanced-hint' }, t('gradientAdvancedHint')),
+            h('div', { className: 'apx-grad-groups' },
+              APPEARANCE_GRADIENT_TARGET_GROUPS.map((group) => h('div', {
+                key: group.id,
+                className: 'apx-grad-group',
+              },
+              h('span', { className: 'apx-grad-group-title' }, t(group.titleKey)),
+              group.items.map((item) => h('label', {
+                key: item.id,
+                className: 'apx-grad-row',
+              },
+              h('span', { className: 'apx-grad-row-label' }, t(item.labelKey)),
+              h('select', {
+                className: 'apx-select',
+                value: gradientTargets[item.id] || 'auto',
+                'aria-label': t(item.labelKey),
+                onChange: (event) => setGradientTarget(item.id, event.target.value),
+              }, gradientMappingOptions.map((option) => h('option', {
+                key: option.value,
+                value: option.value,
+              }, option.label)))))))),
+            h('button', {
+              type: 'button',
+              className: 'apx-clear apx-grad-reset',
+              onClick: resetGradientTargets,
+            }, t('gradientResetTargets')))
+          : null)
+      : null)),
 
   reviewTheme
     ? h(AppearanceSettingsReviewSection, {
@@ -1331,6 +1504,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
       pixelSize: config.pixelSize,
       pixelStyle: config.pixelStyle,
       pixelRadius: config.pixelRadius,
+      gradient,
       creatorBusy,
       onSelect: setReviewSubTheme,
       onCreate: () => openCreator('review'),
@@ -1508,6 +1682,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
         pixelSize: config.pixelSize,
         pixelStyle: config.pixelStyle,
         pixelRadius: config.pixelRadius,
+        gradient,
       }),
       h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t('response'))))
     : staticTheme
@@ -1548,6 +1723,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
             pixelSize: config.pixelSize,
             pixelStyle: config.pixelStyle,
             pixelRadius: config.pixelRadius,
+            gradient,
           }),
           h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t(config.animation)))),
 
@@ -1946,6 +2122,152 @@ const appearanceSettingsCss = `
   padding-top: 14px;
   border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
+.apx-grad {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+.apx-grad-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.apx-grad-title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.apx-grad-sub {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.apx-grad-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.apx-grad-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.apx-grad-preset:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.apx-grad-preset[aria-pressed="true"] {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: inset 0 0 0 0.5px var(--dsw-alias-state-business-primary);
+}
+.apx-grad-swatch {
+  display: block;
+  height: 26px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+}
+.apx-grad-preset-name {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-preset[aria-pressed="true"] .apx-grad-preset-name {
+  color: var(--dsw-alias-label-primary);
+}
+.apx-grad-colors {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.apx-grad-advanced {
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+.apx-grad-advanced summary {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.apx-grad-advanced-hint {
+  margin: 6px 0 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.apx-grad-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.apx-grad-group-title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.apx-grad-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.apx-grad-row-label {
+  flex: 1;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.apx-select {
+  flex: none;
+  min-width: 104px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.apx-grad-reset {
+  margin-top: 10px;
+  margin-left: 0;
+}
 .apx-stack { display: flex; flex-direction: column; gap: 14px; }
 .apx-color-field {
   display: flex;
@@ -2246,6 +2568,9 @@ const appearanceSettingsCss = `
   .apx-segment { flex: 1 1 40%; }
   .apx-slider-label { width: auto; min-width: 64px; }
   .apx-custom-colors { grid-template-columns: 1fr; }
+  .apx-grad-presets { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .apx-grad-row { flex-wrap: wrap; }
+  .apx-select { min-width: 88px; }
   .apx-review-anims { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {

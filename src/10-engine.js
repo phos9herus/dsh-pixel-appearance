@@ -241,6 +241,148 @@ function EnginePaletteLevel(coverage, threshold) {
 }
 
 /* -------------------------------------------------------------------------- *
+ * Main-colour gradient
+ *
+ * A gradient never paints a CSS layer: it makes the MAIN colour of the six-level
+ * ramp vary across the grid, so the pixel language stays identical while lit
+ * pixels shift hue. Ramp level 0 is still the background colour, so the empty
+ * backdrop never changes.
+ * -------------------------------------------------------------------------- */
+
+/** Palette variants across the gradient; 32 keeps the shift visually smooth. */
+const EngineGRADIENT_VARIANTS = 32
+const EngineGRADIENT_TARGETS = [
+  'ripple', 'rain', 'aurora', 'pulse',
+  'halo', 'waves', 'trail',
+  'code', 'investigate', 'create', 'discuss',
+]
+
+/** Normalised target map; unknown / missing ids fall back to `auto`. */
+function EngineGradientTargets(value) {
+  const targets = {}
+  for (let index = 0; index < EngineGRADIENT_TARGETS.length; index += 1) {
+    targets[EngineGRADIENT_TARGETS[index]] = 'auto'
+  }
+  if (!value || typeof value !== 'object') return targets
+  for (let index = 0; index < EngineGRADIENT_TARGETS.length; index += 1) {
+    const id = EngineGRADIENT_TARGETS[index]
+    const raw = value[id]
+    if (raw === 'horizontal' || raw === 'vertical' || raw === 'radial' || raw === 'off') {
+      targets[id] = raw
+    }
+  }
+  return targets
+}
+
+/** Validate the paint-time gradient bundle; null when disabled or malformed. */
+function EngineNormalizeGradient(value) {
+  if (!value || typeof value !== 'object') return null
+  if (value.mode !== 'universal' && value.mode !== 'custom') return null
+  const from = appearanceParseColor(value.from)
+  const to = appearanceParseColor(value.to)
+  if (!from || !to) return null
+  return {
+    mode: value.mode,
+    from,
+    to,
+    angle: EngineClamp(EngineNumber(value.angle, 135), 0, 360),
+    strength: EngineClamp(EngineNumber(value.strength, 1), 0, 1),
+    targets: EngineGradientTargets(value.targets),
+  }
+}
+
+/** Mapping for one target: universal always uses the shared linear ramp. */
+function EngineGradientTargetMapping(gradient, id) {
+  if (!gradient) return 'off'
+  if (gradient.mode === 'universal') return 'linear'
+  const value = gradient.targets[id]
+  return value || 'auto'
+}
+
+/** Designed mapping for a target's `auto` option. */
+function EngineGradientNaturalMapping(id) {
+  switch (id) {
+    case 'rain':
+    case 'aurora':
+    case 'code':
+      return 'vertical'
+    case 'create':
+    case 'discuss':
+      return 'horizontal'
+    case 'trail':
+      return 'temporal'
+    case 'investigate':
+      return 'spot'
+    case 'ripple':
+    case 'pulse':
+    case 'halo':
+    case 'waves':
+    default:
+      return 'radial'
+  }
+}
+
+/** Linear gradient factor for a normalised (u, v) cell; angle in degrees. */
+function EngineGradientLinearFactor(angle, u, v) {
+  const radians = (angle * Math.PI) / 180
+  const dx = Math.cos(radians)
+  const dy = Math.sin(radians)
+  const min = Math.min(dx, 0) + Math.min(dy, 0)
+  const max = Math.max(dx, 0) + Math.max(dy, 0)
+  const range = max - min
+  if (!(range > 1e-6)) return 0
+  return EngineClamp((u * dx + v * dy - min) / range, 0, 1)
+}
+
+/**
+ * Canvas-space gradient factor. `spot` uses a precomputed normalised distance
+ * field (the Review radar), everything else derives from (u, v).
+ */
+function EngineGradientCanvasFactor(mapping, u, v, angle, spot) {
+  if (mapping === 'horizontal') return u
+  if (mapping === 'vertical') return v
+  if (mapping === 'spot') return EngineClamp(EngineNumber(spot, 0), 0, 1)
+  if (mapping === 'linear') return EngineGradientLinearFactor(angle, u, v)
+  const dx = u - 0.5
+  const dy = v - 0.5
+  return EngineClamp(Math.sqrt(dx * dx + dy * dy) / Math.SQRT1_2, 0, 1)
+}
+
+/** Build the per-variant ramps: variant t blends the main colour toward A→B. */
+function EngineBuildGradientPalettes(background, main, gradient) {
+  const from = gradient.from
+  const to = gradient.to
+  const strength = gradient.strength
+  const packed = []
+  const bytes = []
+  for (let step = 0; step < EngineGRADIENT_VARIANTS; step += 1) {
+    const factor = step / (EngineGRADIENT_VARIANTS - 1)
+    const variant = {
+      r: main.r + (from.r + (to.r - from.r) * factor - main.r) * strength,
+      g: main.g + (from.g + (to.g - from.g) * factor - main.g) * strength,
+      b: main.b + (from.b + (to.b - from.b) * factor - main.b) * strength,
+      a: main.a + (from.a + (to.a - from.a) * factor - main.a) * strength,
+    }
+    const palette = EngineBuildPalette(background, variant)
+    packed.push(palette.map(EnginePackColor))
+    bytes.push(palette.map((color) => [
+      EngineClamp(Math.round(color.r), 0, 255),
+      EngineClamp(Math.round(color.g), 0, 255),
+      EngineClamp(Math.round(color.b), 0, 255),
+      EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
+    ]))
+  }
+  return { count: EngineGRADIENT_VARIANTS, packed, bytes }
+}
+
+/** Nearest palette variant for one gradient factor. */
+function EngineGradientVariantIndex(palettes, factor) {
+  const scaled = EngineClamp(factor, 0, 1) * (palettes.count - 1)
+  return Math.round(scaled)
+}
+
+
+/* -------------------------------------------------------------------------- *
  * Field specs (static per grid size; per-frame state is mutated in place)
  * -------------------------------------------------------------------------- */
 
@@ -863,20 +1005,69 @@ function appearancePaintPreview(canvas, options) {
     EngineClamp(Math.round(color.b), 0, 255),
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  const gradientMapping = gradient ? EngineGradientTargetMapping(gradient, animation) : 'off'
+  let gradientPalettes = null
+  let gradientMode = 'off'
+  if (gradient && gradientMapping !== 'off') {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') gradientMode = 'linear'
+    else if (gradientMapping === 'auto') gradientMode = EngineGradientNaturalMapping(animation)
+    else gradientMode = gradientMapping
+  }
   let levels = spec.levels
   if (!levels || levels.length < cols * rows) {
     levels = new Uint8Array(cols * rows)
     spec.levels = levels
   }
   let i = 0
-  for (let y = 0; y < rows; y += 1) {
-    const rowBase = (y & 7) << 3
-    for (let x = 0; x < cols; x += 1, i += 1) {
-      levels[i] = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+  if (gradientPalettes) {
+    const words = entry.layerWords
+    const data = entry.layerImage.data
+    const angle = gradient.angle
+    for (let y = 0; y < rows; y += 1) {
+      const rowBase = (y & 7) << 3
+      const v = (y + 0.5) / rows
+      for (let x = 0; x < cols; x += 1, i += 1) {
+        const level = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+        levels[i] = level
+        if (level <= 0) {
+          if (words) {
+            words[i] = 0
+          } else {
+            const offset = i * 4
+            data[offset] = 0
+            data[offset + 1] = 0
+            data[offset + 2] = 0
+            data[offset + 3] = 0
+          }
+          continue
+        }
+        const factor = EngineGradientCanvasFactor(
+          gradientMode, (x + 0.5) / cols, v, angle,
+        )
+        const variantIndex = EngineGradientVariantIndex(gradientPalettes, factor)
+        if (words) {
+          words[i] = gradientPalettes.packed[variantIndex][level]
+        } else {
+          const color = gradientPalettes.bytes[variantIndex][level]
+          const offset = i * 4
+          data[offset] = color[0]
+          data[offset + 1] = color[1]
+          data[offset + 2] = color[2]
+          data[offset + 3] = color[3]
+        }
+      }
     }
+  } else {
+    for (let y = 0; y < rows; y += 1) {
+      const rowBase = (y & 7) << 3
+      for (let x = 0; x < cols; x += 1, i += 1) {
+        levels[i] = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+      }
+    }
+    EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   }
-
-  EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   entry.layerContext.putImageData(entry.layerImage, 0, 0)
   context.imageSmoothingEnabled = false
   context.clearRect(0, 0, width, height)
@@ -1062,6 +1253,33 @@ function appearancePaintReactive(canvas, options) {
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
 
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  let gradientPalettes = null
+  let haloGradient = 'off'
+  let waveGradient = 'off'
+  let waveGradientAuto = false
+  let trailGradient = 'off'
+  if (gradient) {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') {
+      haloGradient = 'linear'
+      waveGradient = 'linear'
+      trailGradient = 'linear'
+    } else {
+      haloGradient = EngineGradientTargetMapping(gradient, 'halo')
+      const waveMapping = EngineGradientTargetMapping(gradient, 'waves')
+      trailGradient = EngineGradientTargetMapping(gradient, 'trail')
+      waveGradientAuto = waveMapping === 'auto'
+      waveGradient = waveMapping === 'auto' ? 'radial' : waveMapping
+      if (haloGradient === 'auto') haloGradient = 'radial'
+      if (trailGradient === 'auto') trailGradient = 'temporal'
+    }
+    if (haloGradient === 'off' && waveGradient === 'off' && trailGradient === 'off') {
+      gradientPalettes = null
+    }
+  }
+  const gradientAngle = gradient ? gradient.angle : 135
+
   const haloSource = Array.isArray(settings.halos)
     ? settings.halos
     : (settings.halo && typeof settings.halo === 'object' ? [settings.halo] : [])
@@ -1087,16 +1305,27 @@ function appearancePaintReactive(canvas, options) {
     const strength = EngineClamp(EngineNumber(wave.strength, 0), 0, 1)
     if (strength <= 0) continue
     const circle = wave.kind !== 'rect'
+    const wx = EngineNumber(wave.x, 0)
+    const wy = EngineNumber(wave.y, 0)
+    const span = Math.max(
+      Math.hypot(wx, wy),
+      Math.hypot(cssWidth - wx, wy),
+      Math.hypot(wx, cssHeight - wy),
+      Math.hypot(cssWidth - wx, cssHeight - wy),
+    ) || 1
     waves.push({
       circle,
-      x: EngineNumber(wave.x, 0),
-      y: EngineNumber(wave.y, 0),
+      x: wx,
+      y: wy,
       halfW: Math.max(1, EngineNumber(wave.halfW, 1)),
       halfH: Math.max(1, EngineNumber(wave.halfH, 1)),
       corner: Math.max(0, EngineNumber(wave.corner, 0)),
       radius: Math.max(0, EngineNumber(wave.radius, 0)),
       width: Math.max(2, EngineNumber(wave.width, 34)),
       strength,
+      span,
+      /** Runtime-supplied damped travel used by the natural gradient mapping. */
+      gradientSpan: Math.max(0, EngineNumber(wave.gradientSpan, 0)),
     })
   }
 
@@ -1121,16 +1350,31 @@ function appearancePaintReactive(canvas, options) {
   for (let row = 0; row < rows; row += 1) {
     const py = (row + 0.5) * gridCell
     const rowBase = (row & 7) << 3
+    const v = (row + 0.5) / rows
     for (let col = 0; col < cols; col += 1, i += 1) {
       const px = (col + 0.5) * gridCell
+      const u = (col + 0.5) / cols
       let coverage = 0
+      let gradFactor = 0
+      let gradWeight = -1
+      let gradSolid = false
       if (trailEnabled) {
         const birth = trailBirth[i]
         if (birth >= 0) {
           const age = trailNow - birth
           if (age >= 0 && age < trailRetention) {
             const fade = 1 - age / trailRetention
-            if (fade > coverage) coverage = fade
+            if (fade > coverage) {
+              coverage = fade
+              gradWeight = fade
+              if (trailGradient === 'temporal') {
+                gradFactor = 1 - fade
+              } else if (trailGradient === 'off') {
+                gradSolid = true
+              } else {
+                gradFactor = EngineGradientCanvasFactor(trailGradient, u, v, gradientAngle)
+              }
+            }
           } else {
             trailBirth[i] = -1
           }
@@ -1144,7 +1388,18 @@ function appearancePaintReactive(canvas, options) {
         if (distance < item.radius) {
           const t = 1 - distance / item.radius
           const value = item.strength * t * t
-          if (value > coverage) coverage = value
+          if (value > coverage) {
+            coverage = value
+            gradWeight = value
+            if (haloGradient === 'off') {
+              gradSolid = true
+            } else {
+              gradSolid = false
+              gradFactor = haloGradient === 'radial'
+                ? EngineClamp(distance / item.radius, 0, 1)
+                : EngineGradientCanvasFactor(haloGradient, u, v, gradientAngle)
+            }
+          }
         }
       }
       for (let w = 0; w < waves.length; w += 1) {
@@ -1162,14 +1417,45 @@ function appearancePaintReactive(canvas, options) {
           if (distance < 0) continue
         }
         const k = 1 - Math.abs(distance - wave.radius) / wave.width
-        if (k > 0) coverage += wave.strength * k * k
+        if (k > 0) {
+          const contribution = wave.strength * k * k
+          coverage += contribution
+          if (contribution > gradWeight) {
+            gradWeight = contribution
+            if (waveGradient === 'off') {
+              gradSolid = true
+            } else {
+              gradSolid = false
+              gradFactor = waveGradient === 'radial'
+                ? EngineClamp(
+                  distance / (waveGradientAuto && wave.gradientSpan > 0 ? wave.gradientSpan : wave.span),
+                  0,
+                  1,
+                )
+                : EngineGradientCanvasFactor(waveGradient, u, v, gradientAngle)
+            }
+          }
+        }
       }
       if (coverage > 1) coverage = 1
       const level = EnginePaletteLevel(coverage, bayer[rowBase + (col & 7)])
+      const paletteIndex = gradientPalettes && level > 0 && !gradSolid
+        ? EngineGradientVariantIndex(gradientPalettes, gradFactor)
+        : -1
       if (words) {
-        words[i] = level > 0 ? palettePacked[level] : 0
+        if (level <= 0) {
+          words[i] = 0
+        } else if (paletteIndex >= 0) {
+          words[i] = gradientPalettes.packed[paletteIndex][level]
+        } else {
+          words[i] = palettePacked[level]
+        }
       } else {
-        const color = level > 0 ? paletteBytes[level] : null
+        const color = level > 0
+          ? (paletteIndex >= 0
+            ? gradientPalettes.bytes[paletteIndex][level]
+            : paletteBytes[level])
+          : null
         const offset = i * 4
         data[offset] = color ? color[0] : 0
         data[offset + 1] = color ? color[1] : 0

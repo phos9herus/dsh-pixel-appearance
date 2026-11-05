@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-pixel-appearance',
+  id: '@local/dsh-appearance-plugin',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -45,6 +45,7 @@ window.__ModuleLoader__.load({
     ].join('')
     const APPEARANCE_STATIC_DEFAULT_IMAGE = 'data:image/svg+xml;charset=utf-8,'
       + encodeURIComponent(APPEARANCE_STATIC_DEFAULT_SVG)
+    const APPEARANCE_PLUGIN_ROOT = 'D:\\Data\\Agent\\dsh\\created plugins\\appearance'
     const APPEARANCE_PALETTES = [
       { id: 'auto', nameKey: 'paletteAuto', main: '#4D6BFE', bg: '', mode: 'auto' },
       { id: 'deepsea', nameKey: 'paletteDeepsea', main: '#4D6BFE', bg: '#151517', mode: 'dark' },
@@ -53,6 +54,50 @@ window.__ModuleLoader__.load({
       { id: 'forest', nameKey: 'paletteForest', main: '#34D399', bg: '#0F1F1A', mode: 'dark' },
       { id: 'paper', nameKey: 'palettePaper', main: '#4338CA', bg: '#F7F4EC', mode: 'light' },
       { id: 'custom', nameKey: 'paletteCustom', main: null, bg: null, mode: 'custom' },
+    ]
+    /** Gradient presets: 'auto' follows the main colour, the rest are fixed pairs. */
+    const APPEARANCE_GRADIENT_PRESETS = [
+      { id: 'auto', nameKey: 'gradientPresetAuto', from: null, to: null },
+      { id: 'neon', nameKey: 'gradientPresetNeon', from: '#22D3EE', to: '#A855F7' },
+      { id: 'sunset', nameKey: 'gradientPresetSunset', from: '#F59E0B', to: '#F43F5E' },
+      { id: 'ice', nameKey: 'gradientPresetIce', from: '#7DD3FC', to: '#6366F1' },
+      { id: 'aurora', nameKey: 'gradientPresetAurora', from: '#34D399', to: '#818CF8' },
+    ]
+    /**
+     * Gradient targets grouped by pixel theme. Each target accepts
+     * `auto | horizontal | vertical | radial | off`; `auto` uses the
+     * theme-specific mapping designed for that animation / part / sub-theme.
+     */
+    const APPEARANCE_GRADIENT_TARGET_GROUPS = [
+      {
+        id: 'pixel',
+        titleKey: 'gradientTargetGroupPixel',
+        items: [
+          { id: 'ripple', labelKey: 'ripple' },
+          { id: 'rain', labelKey: 'rain' },
+          { id: 'aurora', labelKey: 'aurora' },
+          { id: 'pulse', labelKey: 'pulse' },
+        ],
+      },
+      {
+        id: 'response',
+        titleKey: 'gradientTargetGroupResponse',
+        items: [
+          { id: 'halo', labelKey: 'gradientTargetHalo' },
+          { id: 'waves', labelKey: 'gradientTargetWaves' },
+          { id: 'trail', labelKey: 'gradientTargetTrail' },
+        ],
+      },
+      {
+        id: 'review',
+        titleKey: 'gradientTargetGroupReview',
+        items: [
+          { id: 'code', labelKey: 'reviewCode' },
+          { id: 'investigate', labelKey: 'reviewInvestigate' },
+          { id: 'create', labelKey: 'reviewCreate' },
+          { id: 'discuss', labelKey: 'reviewDiscuss' },
+        ],
+      },
     ]
 
     const ZH = {
@@ -124,12 +169,44 @@ window.__ModuleLoader__.load({
       canvasGlass: '毛玻璃',
       canvasTransparent: '透明',
       sectionPixel: '像素',
-      sectionPixelHint: '像素尺寸与样式作用于像素和响应主题的动态像素背景。默认样式保持当前的方形像素；圆角样式下所有像素使用圆角，圆角半径按像素尺寸的比例自动适配。',
+      sectionPixelHint: '像素尺寸与样式作用于像素和响应主题的动态像素背景。默认样式保持当前的方形像素；圆角样式下所有像素使用圆角，圆角半径按像素尺寸的比例自动适配。下方的渐变可为主体色叠加两色渐变。',
       pixelSize: '像素尺寸',
       pixelStyle: '像素样式',
       pixelStyleDefault: '默认',
       pixelStyleRounded: '圆角',
       pixelRadius: '圆角半径',
+      sectionGradient: '渐变',
+      gradientHint: '为主体色叠加两色渐变。通用模式用同一套画布线性渐变作用到所有像素主题；个性化模式可逐动画、逐部位、逐副主题指定取色方式。',
+      gradientMode: '渐变模式',
+      gradientModeOff: '关闭',
+      gradientModeUniversal: '通用',
+      gradientModeCustom: '个性化',
+      gradientPreset: '渐变方案',
+      gradientPresetAuto: '自动',
+      gradientPresetNeon: '霓虹',
+      gradientPresetSunset: '日落',
+      gradientPresetIce: '冰蓝',
+      gradientPresetAurora: '极光',
+      gradientFrom: '渐变起色',
+      gradientTo: '渐变终色',
+      gradientAngle: '渐变角度',
+      gradientStrength: '渐变强度',
+      gradientHintUniversal: '通用模式：整块画布按角度做线性渐变，所有像素主题、动画与副主题共用同一种取色方式。',
+      gradientHintCustom: '个性化模式：每个动画、部位与副主题按“自然”映射取色，也可以单独改成横向、纵向、径向或关闭。',
+      gradientAdvanced: '个性化映射（高级）',
+      gradientAdvancedHint: '为每个目标单独选择渐变取色方式；“自然”使用为该目标设计的映射。',
+      gradientTargetGroupPixel: '像素主题',
+      gradientTargetGroupResponse: '响应主题',
+      gradientTargetGroupReview: '回顾主题',
+      gradientTargetHalo: '晕影',
+      gradientTargetWaves: '波形',
+      gradientTargetTrail: '尾迹',
+      gradientMappingAuto: '自然',
+      gradientMappingHorizontal: '横向',
+      gradientMappingVertical: '纵向',
+      gradientMappingRadial: '径向',
+      gradientMappingOff: '关闭',
+      gradientResetTargets: '恢复自然映射',
       sectionResponse: '响应效果',
       sectionResponseHint: '静态保持当前晕影效果；动态样式让晕影半径与亮度按呼吸节奏缓慢起伏。晕影半径可调；尾迹强度描述像素尾迹的保留时间，0 表示无尾迹。',
       responseRadius: '晕影半径',
@@ -144,7 +221,7 @@ window.__ModuleLoader__.load({
       composerWaveCaret: '光标',
       sectionDamping: '波形阻尼',
       waveDamping: '波形阻尼',
-      waveDampingHint: '100% 时波形极快衰减，不会扩散到整个画布；0% 为当前效果。阻尼作用于点击、输入卡和 Agent 新消息产生的所有波形。',
+      waveDampingHint: '100% 时波形极快衰减，不会扩散到整个画布；0% 为当前效果。阻尼作用于点击、输入卡和 Agent 新消息产生的所有波形；波形的自然渐变会随阻尼收束，在波形消失前到达目标色。',
       sectionComposer: '输入卡样式',
       composerHint: '主页面输入卡的材质、颜色和透明度。',
       sectionSidebar: '侧边栏样式',
@@ -177,9 +254,9 @@ window.__ModuleLoader__.load({
       staticDim: '图片暗化',
       staticPreviewHint: '预览跟随当前图片、模糊和暗化设置。',
       animationHintStatic: '像素主题下生效；静态主题使用图片背景，不使用像素动画。',
-      creatorPromptTheme: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的视觉主题。目标是让新主题出现在“设置 > 外观 > 主题”菜单中。请在当前插件根目录（包含 index.js、src/INTERFACE.md 和 src/build.mjs 的目录）内工作；请先阅读 src/INTERFACE.md 和现有 client.js 生成源码，沿用 Host-backed Config、配色组合和像素引擎接口；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
-      creatorPromptAnimation: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的像素背景动画。目标是让新动画出现在“设置 > 外观 > 动画内容”菜单中。请在当前插件根目录内工作；请先阅读 src/INTERFACE.md 和现有像素引擎实现，新增一个无缝循环、两色有序抖动的动画，并沿用现有菜单和 Host-backed Config；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
-      creatorPromptReview: `请使用创造模式为当前 DSH「像素外观」插件创作一个新的“回顾”主题副主题动画。目标是让新动画出现在“设置 > 外观 > 主题 > 回顾 > 副主题动画”菜单中。请在当前插件根目录内工作；请先阅读 src/INTERFACE.md、src/47-review.js（回顾主题的动画与内容识别）和现有 client.js 生成源码，沿用两色色阶、Bayer 抖动、像素尺寸/圆角以及 Host-backed Config；新副主题动画必须保持 8 秒无缝循环、只出现在“回顾”主题下，并能像现有四种副主题一样由会话内容指导；实现后运行 node src/build.mjs、node --check client.js，并说明如何安装与验证。所有新增或修改的文件都必须保存在该插件目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptTheme: `请使用创造模式为当前 DSH 外观插件创作一个新的视觉主题。目标是让新主题出现在“设置 > 外观 > 主题”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md 和现有 client.js 生成源码，沿用 Host-backed Config、配色组合和像素引擎接口；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptAnimation: `请使用创造模式为当前 DSH 外观插件创作一个新的像素背景动画。目标是让新动画出现在“设置 > 外观 > 动画内容”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md 和现有像素引擎实现，新增一个无缝循环、两色有序抖动的动画，并沿用现有菜单和 Host-backed Config；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
+      creatorPromptReview: `请使用创造模式为当前 DSH 外观插件创作一个新的“回顾”主题副主题动画。目标是让新动画出现在“设置 > 外观 > 主题 > 回顾 > 副主题动画”菜单中。插件根目录固定为 ${APPEARANCE_PLUGIN_ROOT}；请先阅读 ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md、${APPEARANCE_PLUGIN_ROOT}\\src\\47-review.js（回顾主题的动画与内容识别）和现有 client.js 生成源码，沿用两色色阶、Bayer 抖动、像素尺寸/圆角以及 Host-backed Config；新副主题动画必须保持 8 秒无缝循环、只出现在“回顾”主题下，并能像现有四种副主题一样由会话内容指导；实现后运行 node --check 并说明如何安装与验证。所有新增或修改的文件都必须保存在该目录内，不要写入其他位置，也不要修改无关文件。`,
     }
     const EN = {
       nav: 'Appearance',
@@ -250,12 +327,44 @@ window.__ModuleLoader__.load({
       canvasGlass: 'Frosted glass',
       canvasTransparent: 'Transparent',
       sectionPixel: 'Pixels',
-      sectionPixelHint: 'Pixel size and style apply to the animated pixel backgrounds of the Pixel and Response themes. Default keeps the current square pixels; Rounded rounds every pixel, and the corner radius scales with the pixel size.',
+      sectionPixelHint: 'Pixel size and style apply to the animated pixel backgrounds of the Pixel and Response themes. Default keeps the current square pixels; Rounded rounds every pixel, and the corner radius scales with the pixel size. The gradient below adds a two-colour gradient to the main colour.',
       pixelSize: 'Pixel size',
       pixelStyle: 'Pixel style',
       pixelStyleDefault: 'Default',
       pixelStyleRounded: 'Rounded',
       pixelRadius: 'Corner radius',
+      sectionGradient: 'Gradient',
+      gradientHint: 'Add a two-colour gradient to the main colour. Universal applies one canvas-space linear gradient to every pixel theme; Personal lets you choose the colouring per animation, per part, and per sub-theme.',
+      gradientMode: 'Gradient mode',
+      gradientModeOff: 'Off',
+      gradientModeUniversal: 'Universal',
+      gradientModeCustom: 'Personal',
+      gradientPreset: 'Gradient palette',
+      gradientPresetAuto: 'Auto',
+      gradientPresetNeon: 'Neon',
+      gradientPresetSunset: 'Sunset',
+      gradientPresetIce: 'Ice',
+      gradientPresetAurora: 'Aurora',
+      gradientFrom: 'Gradient start',
+      gradientTo: 'Gradient end',
+      gradientAngle: 'Gradient angle',
+      gradientStrength: 'Gradient strength',
+      gradientHintUniversal: 'Universal: one linear gradient across the whole canvas, shared by every pixel theme, animation, and sub-theme.',
+      gradientHintCustom: 'Personal: every animation, part, and sub-theme uses its own natural mapping, and each one can be switched to horizontal, vertical, radial, or off.',
+      gradientAdvanced: 'Personal mappings (advanced)',
+      gradientAdvancedHint: 'Choose the gradient colouring for each target; Natural uses the mapping designed for it.',
+      gradientTargetGroupPixel: 'Pixel theme',
+      gradientTargetGroupResponse: 'Response theme',
+      gradientTargetGroupReview: 'Retrospective theme',
+      gradientTargetHalo: 'Halo',
+      gradientTargetWaves: 'Waves',
+      gradientTargetTrail: 'Trail',
+      gradientMappingAuto: 'Natural',
+      gradientMappingHorizontal: 'Horizontal',
+      gradientMappingVertical: 'Vertical',
+      gradientMappingRadial: 'Radial',
+      gradientMappingOff: 'Off',
+      gradientResetTargets: 'Reset to natural',
       sectionResponse: 'Response effect',
       sectionResponseHint: 'Static keeps the current halo; Dynamic makes the halo radius and brightness breathe slowly. The halo radius is adjustable; Trail strength controls how long stamped trail pixels survive, and 0 disables the trail.',
       responseRadius: 'Halo radius',
@@ -270,7 +379,7 @@ window.__ModuleLoader__.load({
       composerWaveCaret: 'Caret',
       sectionDamping: 'Wave damping',
       waveDamping: 'Wave damping',
-      waveDampingHint: 'At 100% waves decay almost immediately and never reach the whole canvas; 0% keeps the current effect. Applies to every wave from clicks, the composer, and new Agent messages.',
+      waveDampingHint: 'At 100% waves decay almost immediately and never reach the whole canvas; 0% keeps the current effect. Applies to every wave from clicks, the composer, and new Agent messages; the natural wave gradient also shortens with damping so it reaches its target colour before the wave fades out.',
       sectionComposer: 'Composer',
       composerHint: 'Material, colour, and opacity of the main-page composer card.',
       sectionSidebar: 'Sidebar',
@@ -303,9 +412,9 @@ window.__ModuleLoader__.load({
       staticDim: 'Picture dim',
       staticPreviewHint: 'The preview follows the current picture, blur, and dim settings.',
       animationHintStatic: 'Applies to the Pixel theme; the Static theme uses a picture instead of a pixel animation.',
-      creatorPromptTheme: `Use Creator mode to author a new visual theme for the current DSH Pixel Appearance plugin. The new theme must appear in Settings > Appearance > Theme. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md and the existing client.js sources, reuse the Host-backed Config, palette, and pixel engine interfaces, then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
-      creatorPromptAnimation: `Use Creator mode to author a new pixel background animation for the current DSH Pixel Appearance plugin. The new animation must appear in Settings > Appearance > Animation. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md and the existing pixel engine, add a seamless, two-colour ordered-dither animation, and reuse the existing menu and Host-backed Config; then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
-      creatorPromptReview: `Use Creator mode to author a new sub-theme animation for the Retrospective (回顾) theme of the current DSH Pixel Appearance plugin. The new animation must appear in Settings > Appearance > Theme > Retrospective > Sub-theme animation. Work inside the plugin root (the directory containing index.js, src/INTERFACE.md, and src/build.mjs); first read src/INTERFACE.md, src/47-review.js (the Review theme's animations and content detection) and the existing generated client.js sources, reuse the two-colour ramp, Bayer dithering, pixel size/corner settings, and the Host-backed Config; the new sub-theme animation must keep an 8-second seamless loop, appear only under the Retrospective theme, and be guidable by conversation content like the existing four; then run node src/build.mjs and node --check client.js and explain how to install and verify it. Keep every new or modified file inside that plugin directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptTheme: `Use Creator mode to author a new visual theme for the current DSH Appearance plugin. The new theme must appear in Settings > Appearance > Theme. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md and the existing client.js sources, reuse the Host-backed Config, palette, and pixel engine interfaces, then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptAnimation: `Use Creator mode to author a new pixel background animation for the current DSH Appearance plugin. The new animation must appear in Settings > Appearance > Animation. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md and the existing pixel engine, add a seamless, two-colour ordered-dither animation, and reuse the existing menu and Host-backed Config; then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
+      creatorPromptReview: `Use Creator mode to author a new sub-theme animation for the Retrospective (回顾) theme of the current DSH Appearance plugin. The new animation must appear in Settings > Appearance > Theme > Retrospective > Sub-theme animation. The plugin root is fixed at ${APPEARANCE_PLUGIN_ROOT}; first read ${APPEARANCE_PLUGIN_ROOT}\\src\\INTERFACE.md, ${APPEARANCE_PLUGIN_ROOT}\\src\\47-review.js (the Review theme's animations and content detection) and the existing generated client.js sources, reuse the two-colour ramp, Bayer dithering, pixel size/corner settings, and the Host-backed Config; the new sub-theme animation must keep an 8-second seamless loop, appear only under the Retrospective theme, and be guidable by conversation content like the existing four; then run node --check and explain how to install and verify it. Keep every new or modified file inside that directory; do not write elsewhere and do not edit unrelated files.`,
     }
 
     const APPEARANCE_DEFAULTS = {
@@ -328,6 +437,13 @@ window.__ModuleLoader__.load({
       pixelSize: 10,
       pixelStyle: 'square',
       pixelRadius: 0.25,
+      gradientMode: 'off',
+      gradientPreset: 'auto',
+      gradientFrom: '',
+      gradientTo: '',
+      gradientAngle: 135,
+      gradientStrength: 1,
+      gradientTargets: '',
       composerWaveMode: 'whole',
       waveDamping: 0,
       reviewSubTheme: 'auto',
@@ -616,6 +732,148 @@ function EnginePaletteLevel(coverage, threshold) {
   if (fraction > threshold && base < EnginePALETTE_LEVELS - 1) base += 1
   return base
 }
+
+/* -------------------------------------------------------------------------- *
+ * Main-colour gradient
+ *
+ * A gradient never paints a CSS layer: it makes the MAIN colour of the six-level
+ * ramp vary across the grid, so the pixel language stays identical while lit
+ * pixels shift hue. Ramp level 0 is still the background colour, so the empty
+ * backdrop never changes.
+ * -------------------------------------------------------------------------- */
+
+/** Palette variants across the gradient; 32 keeps the shift visually smooth. */
+const EngineGRADIENT_VARIANTS = 32
+const EngineGRADIENT_TARGETS = [
+  'ripple', 'rain', 'aurora', 'pulse',
+  'halo', 'waves', 'trail',
+  'code', 'investigate', 'create', 'discuss',
+]
+
+/** Normalised target map; unknown / missing ids fall back to `auto`. */
+function EngineGradientTargets(value) {
+  const targets = {}
+  for (let index = 0; index < EngineGRADIENT_TARGETS.length; index += 1) {
+    targets[EngineGRADIENT_TARGETS[index]] = 'auto'
+  }
+  if (!value || typeof value !== 'object') return targets
+  for (let index = 0; index < EngineGRADIENT_TARGETS.length; index += 1) {
+    const id = EngineGRADIENT_TARGETS[index]
+    const raw = value[id]
+    if (raw === 'horizontal' || raw === 'vertical' || raw === 'radial' || raw === 'off') {
+      targets[id] = raw
+    }
+  }
+  return targets
+}
+
+/** Validate the paint-time gradient bundle; null when disabled or malformed. */
+function EngineNormalizeGradient(value) {
+  if (!value || typeof value !== 'object') return null
+  if (value.mode !== 'universal' && value.mode !== 'custom') return null
+  const from = appearanceParseColor(value.from)
+  const to = appearanceParseColor(value.to)
+  if (!from || !to) return null
+  return {
+    mode: value.mode,
+    from,
+    to,
+    angle: EngineClamp(EngineNumber(value.angle, 135), 0, 360),
+    strength: EngineClamp(EngineNumber(value.strength, 1), 0, 1),
+    targets: EngineGradientTargets(value.targets),
+  }
+}
+
+/** Mapping for one target: universal always uses the shared linear ramp. */
+function EngineGradientTargetMapping(gradient, id) {
+  if (!gradient) return 'off'
+  if (gradient.mode === 'universal') return 'linear'
+  const value = gradient.targets[id]
+  return value || 'auto'
+}
+
+/** Designed mapping for a target's `auto` option. */
+function EngineGradientNaturalMapping(id) {
+  switch (id) {
+    case 'rain':
+    case 'aurora':
+    case 'code':
+      return 'vertical'
+    case 'create':
+    case 'discuss':
+      return 'horizontal'
+    case 'trail':
+      return 'temporal'
+    case 'investigate':
+      return 'spot'
+    case 'ripple':
+    case 'pulse':
+    case 'halo':
+    case 'waves':
+    default:
+      return 'radial'
+  }
+}
+
+/** Linear gradient factor for a normalised (u, v) cell; angle in degrees. */
+function EngineGradientLinearFactor(angle, u, v) {
+  const radians = (angle * Math.PI) / 180
+  const dx = Math.cos(radians)
+  const dy = Math.sin(radians)
+  const min = Math.min(dx, 0) + Math.min(dy, 0)
+  const max = Math.max(dx, 0) + Math.max(dy, 0)
+  const range = max - min
+  if (!(range > 1e-6)) return 0
+  return EngineClamp((u * dx + v * dy - min) / range, 0, 1)
+}
+
+/**
+ * Canvas-space gradient factor. `spot` uses a precomputed normalised distance
+ * field (the Review radar), everything else derives from (u, v).
+ */
+function EngineGradientCanvasFactor(mapping, u, v, angle, spot) {
+  if (mapping === 'horizontal') return u
+  if (mapping === 'vertical') return v
+  if (mapping === 'spot') return EngineClamp(EngineNumber(spot, 0), 0, 1)
+  if (mapping === 'linear') return EngineGradientLinearFactor(angle, u, v)
+  const dx = u - 0.5
+  const dy = v - 0.5
+  return EngineClamp(Math.sqrt(dx * dx + dy * dy) / Math.SQRT1_2, 0, 1)
+}
+
+/** Build the per-variant ramps: variant t blends the main colour toward A→B. */
+function EngineBuildGradientPalettes(background, main, gradient) {
+  const from = gradient.from
+  const to = gradient.to
+  const strength = gradient.strength
+  const packed = []
+  const bytes = []
+  for (let step = 0; step < EngineGRADIENT_VARIANTS; step += 1) {
+    const factor = step / (EngineGRADIENT_VARIANTS - 1)
+    const variant = {
+      r: main.r + (from.r + (to.r - from.r) * factor - main.r) * strength,
+      g: main.g + (from.g + (to.g - from.g) * factor - main.g) * strength,
+      b: main.b + (from.b + (to.b - from.b) * factor - main.b) * strength,
+      a: main.a + (from.a + (to.a - from.a) * factor - main.a) * strength,
+    }
+    const palette = EngineBuildPalette(background, variant)
+    packed.push(palette.map(EnginePackColor))
+    bytes.push(palette.map((color) => [
+      EngineClamp(Math.round(color.r), 0, 255),
+      EngineClamp(Math.round(color.g), 0, 255),
+      EngineClamp(Math.round(color.b), 0, 255),
+      EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
+    ]))
+  }
+  return { count: EngineGRADIENT_VARIANTS, packed, bytes }
+}
+
+/** Nearest palette variant for one gradient factor. */
+function EngineGradientVariantIndex(palettes, factor) {
+  const scaled = EngineClamp(factor, 0, 1) * (palettes.count - 1)
+  return Math.round(scaled)
+}
+
 
 /* -------------------------------------------------------------------------- *
  * Field specs (static per grid size; per-frame state is mutated in place)
@@ -1240,20 +1498,69 @@ function appearancePaintPreview(canvas, options) {
     EngineClamp(Math.round(color.b), 0, 255),
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  const gradientMapping = gradient ? EngineGradientTargetMapping(gradient, animation) : 'off'
+  let gradientPalettes = null
+  let gradientMode = 'off'
+  if (gradient && gradientMapping !== 'off') {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') gradientMode = 'linear'
+    else if (gradientMapping === 'auto') gradientMode = EngineGradientNaturalMapping(animation)
+    else gradientMode = gradientMapping
+  }
   let levels = spec.levels
   if (!levels || levels.length < cols * rows) {
     levels = new Uint8Array(cols * rows)
     spec.levels = levels
   }
   let i = 0
-  for (let y = 0; y < rows; y += 1) {
-    const rowBase = (y & 7) << 3
-    for (let x = 0; x < cols; x += 1, i += 1) {
-      levels[i] = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+  if (gradientPalettes) {
+    const words = entry.layerWords
+    const data = entry.layerImage.data
+    const angle = gradient.angle
+    for (let y = 0; y < rows; y += 1) {
+      const rowBase = (y & 7) << 3
+      const v = (y + 0.5) / rows
+      for (let x = 0; x < cols; x += 1, i += 1) {
+        const level = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+        levels[i] = level
+        if (level <= 0) {
+          if (words) {
+            words[i] = 0
+          } else {
+            const offset = i * 4
+            data[offset] = 0
+            data[offset + 1] = 0
+            data[offset + 2] = 0
+            data[offset + 3] = 0
+          }
+          continue
+        }
+        const factor = EngineGradientCanvasFactor(
+          gradientMode, (x + 0.5) / cols, v, angle,
+        )
+        const variantIndex = EngineGradientVariantIndex(gradientPalettes, factor)
+        if (words) {
+          words[i] = gradientPalettes.packed[variantIndex][level]
+        } else {
+          const color = gradientPalettes.bytes[variantIndex][level]
+          const offset = i * 4
+          data[offset] = color[0]
+          data[offset + 1] = color[1]
+          data[offset + 2] = color[2]
+          data[offset + 3] = color[3]
+        }
+      }
     }
+  } else {
+    for (let y = 0; y < rows; y += 1) {
+      const rowBase = (y & 7) << 3
+      for (let x = 0; x < cols; x += 1, i += 1) {
+        levels[i] = EnginePaletteLevel(cov[i], bayer[rowBase + (x & 7)])
+      }
+    }
+    EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   }
-
-  EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   entry.layerContext.putImageData(entry.layerImage, 0, 0)
   context.imageSmoothingEnabled = false
   context.clearRect(0, 0, width, height)
@@ -1439,6 +1746,33 @@ function appearancePaintReactive(canvas, options) {
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
 
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  let gradientPalettes = null
+  let haloGradient = 'off'
+  let waveGradient = 'off'
+  let waveGradientAuto = false
+  let trailGradient = 'off'
+  if (gradient) {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') {
+      haloGradient = 'linear'
+      waveGradient = 'linear'
+      trailGradient = 'linear'
+    } else {
+      haloGradient = EngineGradientTargetMapping(gradient, 'halo')
+      const waveMapping = EngineGradientTargetMapping(gradient, 'waves')
+      trailGradient = EngineGradientTargetMapping(gradient, 'trail')
+      waveGradientAuto = waveMapping === 'auto'
+      waveGradient = waveMapping === 'auto' ? 'radial' : waveMapping
+      if (haloGradient === 'auto') haloGradient = 'radial'
+      if (trailGradient === 'auto') trailGradient = 'temporal'
+    }
+    if (haloGradient === 'off' && waveGradient === 'off' && trailGradient === 'off') {
+      gradientPalettes = null
+    }
+  }
+  const gradientAngle = gradient ? gradient.angle : 135
+
   const haloSource = Array.isArray(settings.halos)
     ? settings.halos
     : (settings.halo && typeof settings.halo === 'object' ? [settings.halo] : [])
@@ -1464,16 +1798,27 @@ function appearancePaintReactive(canvas, options) {
     const strength = EngineClamp(EngineNumber(wave.strength, 0), 0, 1)
     if (strength <= 0) continue
     const circle = wave.kind !== 'rect'
+    const wx = EngineNumber(wave.x, 0)
+    const wy = EngineNumber(wave.y, 0)
+    const span = Math.max(
+      Math.hypot(wx, wy),
+      Math.hypot(cssWidth - wx, wy),
+      Math.hypot(wx, cssHeight - wy),
+      Math.hypot(cssWidth - wx, cssHeight - wy),
+    ) || 1
     waves.push({
       circle,
-      x: EngineNumber(wave.x, 0),
-      y: EngineNumber(wave.y, 0),
+      x: wx,
+      y: wy,
       halfW: Math.max(1, EngineNumber(wave.halfW, 1)),
       halfH: Math.max(1, EngineNumber(wave.halfH, 1)),
       corner: Math.max(0, EngineNumber(wave.corner, 0)),
       radius: Math.max(0, EngineNumber(wave.radius, 0)),
       width: Math.max(2, EngineNumber(wave.width, 34)),
       strength,
+      span,
+      /** Runtime-supplied damped travel used by the natural gradient mapping. */
+      gradientSpan: Math.max(0, EngineNumber(wave.gradientSpan, 0)),
     })
   }
 
@@ -1498,16 +1843,31 @@ function appearancePaintReactive(canvas, options) {
   for (let row = 0; row < rows; row += 1) {
     const py = (row + 0.5) * gridCell
     const rowBase = (row & 7) << 3
+    const v = (row + 0.5) / rows
     for (let col = 0; col < cols; col += 1, i += 1) {
       const px = (col + 0.5) * gridCell
+      const u = (col + 0.5) / cols
       let coverage = 0
+      let gradFactor = 0
+      let gradWeight = -1
+      let gradSolid = false
       if (trailEnabled) {
         const birth = trailBirth[i]
         if (birth >= 0) {
           const age = trailNow - birth
           if (age >= 0 && age < trailRetention) {
             const fade = 1 - age / trailRetention
-            if (fade > coverage) coverage = fade
+            if (fade > coverage) {
+              coverage = fade
+              gradWeight = fade
+              if (trailGradient === 'temporal') {
+                gradFactor = 1 - fade
+              } else if (trailGradient === 'off') {
+                gradSolid = true
+              } else {
+                gradFactor = EngineGradientCanvasFactor(trailGradient, u, v, gradientAngle)
+              }
+            }
           } else {
             trailBirth[i] = -1
           }
@@ -1521,7 +1881,18 @@ function appearancePaintReactive(canvas, options) {
         if (distance < item.radius) {
           const t = 1 - distance / item.radius
           const value = item.strength * t * t
-          if (value > coverage) coverage = value
+          if (value > coverage) {
+            coverage = value
+            gradWeight = value
+            if (haloGradient === 'off') {
+              gradSolid = true
+            } else {
+              gradSolid = false
+              gradFactor = haloGradient === 'radial'
+                ? EngineClamp(distance / item.radius, 0, 1)
+                : EngineGradientCanvasFactor(haloGradient, u, v, gradientAngle)
+            }
+          }
         }
       }
       for (let w = 0; w < waves.length; w += 1) {
@@ -1539,14 +1910,45 @@ function appearancePaintReactive(canvas, options) {
           if (distance < 0) continue
         }
         const k = 1 - Math.abs(distance - wave.radius) / wave.width
-        if (k > 0) coverage += wave.strength * k * k
+        if (k > 0) {
+          const contribution = wave.strength * k * k
+          coverage += contribution
+          if (contribution > gradWeight) {
+            gradWeight = contribution
+            if (waveGradient === 'off') {
+              gradSolid = true
+            } else {
+              gradSolid = false
+              gradFactor = waveGradient === 'radial'
+                ? EngineClamp(
+                  distance / (waveGradientAuto && wave.gradientSpan > 0 ? wave.gradientSpan : wave.span),
+                  0,
+                  1,
+                )
+                : EngineGradientCanvasFactor(waveGradient, u, v, gradientAngle)
+            }
+          }
+        }
       }
       if (coverage > 1) coverage = 1
       const level = EnginePaletteLevel(coverage, bayer[rowBase + (col & 7)])
+      const paletteIndex = gradientPalettes && level > 0 && !gradSolid
+        ? EngineGradientVariantIndex(gradientPalettes, gradFactor)
+        : -1
       if (words) {
-        words[i] = level > 0 ? palettePacked[level] : 0
+        if (level <= 0) {
+          words[i] = 0
+        } else if (paletteIndex >= 0) {
+          words[i] = gradientPalettes.packed[paletteIndex][level]
+        } else {
+          words[i] = palettePacked[level]
+        }
       } else {
-        const color = level > 0 ? paletteBytes[level] : null
+        const color = level > 0
+          ? (paletteIndex >= 0
+            ? gradientPalettes.bytes[paletteIndex][level]
+            : paletteBytes[level])
+          : null
         const offset = i * 4
         data[offset] = color ? color[0] : 0
         data[offset + 1] = color ? color[1] : 0
@@ -1776,6 +2178,127 @@ function appearanceResolvedScheme(ctx) {
   }
 }
 
+/* -------------------------------------------------------------------------- *
+ * Main-colour gradient
+ * -------------------------------------------------------------------------- */
+
+/** Target ids in their configured order, with `auto` defaults. */
+function appearanceGradientTargetDefaults() {
+  const targets = {}
+  for (const group of APPEARANCE_GRADIENT_TARGET_GROUPS) {
+    for (const item of group.items) targets[item.id] = 'auto'
+  }
+  return targets
+}
+
+/** Parse the Host-stored JSON map; unknown ids/values fall back to `auto`. */
+function appearanceParseGradientTargets(raw) {
+  const targets = appearanceGradientTargetDefaults()
+  if (typeof raw !== 'string' || raw.trim() === '') return targets
+  let parsed = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    parsed = null
+  }
+  if (!parsed || typeof parsed !== 'object') return targets
+  for (const id of Object.keys(targets)) {
+    const value = parsed[id]
+    if (value === 'horizontal' || value === 'vertical' || value === 'radial' || value === 'off') {
+      targets[id] = value
+    }
+  }
+  return targets
+}
+
+/** Auto gradient end: rotate the main hue and lift its lightness. */
+function appearanceDeriveGradientEnd(mainColor) {
+  const color = appearanceParseColor(mainColor) || appearanceParseColor('#4D6BFE')
+  const red = color.r / 255
+  const green = color.g / 255
+  const blue = color.b / 255
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  const lightness = (max + min) / 2
+  let hue = 0
+  let saturation = 0
+  if (max !== min) {
+    const delta = max - min
+    saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min)
+    if (max === red) hue = ((green - blue) / delta + (green < blue ? 6 : 0)) / 6
+    else if (max === green) hue = ((blue - red) / delta + 2) / 6
+    else hue = ((red - green) / delta + 4) / 6
+  }
+  hue = (hue + 42 / 360) % 1
+  saturation = appearanceClamp(saturation * 0.92 + 0.06, 0.35, 0.9)
+  const light = appearanceClamp(lightness + 0.09, 0.35, 0.84)
+  const hueToChannel = (p, q, t) => {
+    let value = t
+    if (value < 0) value += 1
+    if (value > 1) value -= 1
+    if (value < 1 / 6) return p + (q - p) * 6 * value
+    if (value < 1 / 2) return q
+    if (value < 2 / 3) return p + (q - p) * (2 / 3 - value) * 6
+    return p
+  }
+  let channels
+  if (saturation === 0) {
+    channels = [light, light, light]
+  } else {
+    const q = light < 0.5 ? light * (1 + saturation) : light + saturation - light * saturation
+    const p = 2 * light - q
+    channels = [
+      hueToChannel(p, q, hue + 1 / 3),
+      hueToChannel(p, q, hue),
+      hueToChannel(p, q, hue - 1 / 3),
+    ]
+  }
+  return '#' + channels.map((channel) => {
+    const value = Math.round(appearanceClamp(channel, 0, 1) * 255).toString(16)
+    return value.length < 2 ? '0' + value : value
+  }).join('').toUpperCase()
+}
+
+/**
+ * Resolve gradient settings into the paint-time bundle:
+ * `{ mode, from, to, angle, strength, targets }`, or null when disabled.
+ */
+function appearanceResolveGradient(config, mainColor) {
+  const mode = config && (config.gradientMode === 'universal' || config.gradientMode === 'custom')
+    ? config.gradientMode
+    : null
+  if (!mode) return null
+  const baseMain = appearanceIsHex(mainColor) ? mainColor : APPEARANCE_DEFAULTS.mainColor
+  let from = baseMain
+  let to = appearanceDeriveGradientEnd(baseMain)
+  const presetId = typeof config.gradientPreset === 'string' ? config.gradientPreset : 'auto'
+  if (presetId === 'custom') {
+    from = appearanceIsHex(config.gradientFrom) ? config.gradientFrom : baseMain
+    to = appearanceIsHex(config.gradientTo) ? config.gradientTo : appearanceDeriveGradientEnd(baseMain)
+  } else {
+    const preset = APPEARANCE_GRADIENT_PRESETS.find((item) => item.id === presetId)
+    if (preset && preset.from && preset.to) {
+      from = preset.from
+      to = preset.to
+    }
+  }
+  const angle = typeof config.gradientAngle === 'number' && Number.isFinite(config.gradientAngle)
+    ? appearanceClamp(config.gradientAngle, 0, 360)
+    : 135
+  const strength = typeof config.gradientStrength === 'number' && Number.isFinite(config.gradientStrength)
+    ? appearanceClamp(config.gradientStrength, 0, 1)
+    : 1
+  return {
+    mode,
+    from,
+    to,
+    angle,
+    strength,
+    targets: appearanceParseGradientTargets(config.gradientTargets),
+  }
+}
+
+
 function appearanceColorWithAlpha(value, opacity) {
   const color = appearanceParseColor(value)
   if (color === null) return value
@@ -1830,6 +2353,7 @@ function appearanceEffective(config, scheme) {
       0,
       0.5,
     ),
+    gradient: appearanceResolveGradient(config, colors.mainColor),
     responseRadius: appearanceClamp(Number(config.responseRadius) || 180, 40, 400),
     haloStyle: config.haloStyle === 'dynamic' ? 'dynamic' : 'static',
     trailStrength: appearanceClamp(
@@ -1887,6 +2411,13 @@ const appearanceSettingsHostFields = {
   pixelSize: true,
   pixelStyle: true,
   pixelRadius: true,
+  gradientMode: true,
+  gradientPreset: true,
+  gradientFrom: true,
+  gradientTo: true,
+  gradientAngle: true,
+  gradientStrength: true,
+  gradientTargets: true,
   haloStyle: true,
   trailStrength: true,
   reviewSubTheme: true,
@@ -2260,6 +2791,7 @@ function AppearanceSettingsPreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
 
@@ -2296,6 +2828,7 @@ function AppearanceSettingsPreview({
           cell: Math.max(2, Math.round(pixelSize)),
           pixelStyle,
           pixelRadius,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -2335,7 +2868,7 @@ function AppearanceSettingsPreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, animation, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, animation, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -2362,6 +2895,7 @@ function AppearanceSettingsResponsePreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
 
@@ -2412,6 +2946,7 @@ function AppearanceSettingsResponsePreview({
       const dampingValue = appearanceClamp(Number(damping) || 0, 0, 1)
       const baseReach = Math.hypot(width, height) * 0.62
       const reach = appearanceResponseWaveReach(baseReach, dampingValue)
+      const gradientSpan = appearanceResponseWaveGradientSpan(reach, dampingValue)
       const circlePhase = (time * 0.52) % 1
       const cardPhase = (time * 0.36 + 0.55) % 1
       const circleRadius = circlePhase * reach
@@ -2424,6 +2959,7 @@ function AppearanceSettingsResponsePreview({
           radius: circleRadius,
           width: 34,
           strength: appearanceResponseWaveAmp(0.9, circleRadius, reach, dampingValue),
+          gradientSpan,
         },
         composerWaveMode === 'caret'
           ? {
@@ -2433,6 +2969,7 @@ function AppearanceSettingsResponsePreview({
             radius: cardRadius,
             width: 34,
             strength: appearanceResponseWaveAmp(0.9, cardRadius, reach, dampingValue),
+            gradientSpan,
           }
           : {
             kind: 'rect',
@@ -2444,6 +2981,7 @@ function AppearanceSettingsResponsePreview({
             radius: cardRadius,
             width: 36,
             strength: appearanceResponseWaveAmp(0.9, cardRadius, reach, dampingValue),
+            gradientSpan,
           },
       ]
       try {
@@ -2459,6 +2997,7 @@ function AppearanceSettingsResponsePreview({
           halos,
           trail,
           waves,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -2501,7 +3040,7 @@ function AppearanceSettingsResponsePreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, radius, haloStyle, trailStrength, composerWaveMode, damping, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, radius, haloStyle, trailStrength, composerWaveMode, damping, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -2575,6 +3114,7 @@ function AppearanceSettingsReviewPreview({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
 }) {
   const canvasRef = React.useRef(null)
   const chosen = subTheme === 'auto'
@@ -2627,6 +3167,7 @@ function AppearanceSettingsReviewPreview({
           cell: Math.max(2, Math.round(pixelSize)),
           pixelStyle,
           pixelRadius,
+          gradient,
         })
       } catch {
         // A bad frame must never take the settings page down.
@@ -2666,7 +3207,7 @@ function AppearanceSettingsReviewPreview({
       if (resizeObserver) resizeObserver.disconnect()
       else if (view && typeof view.removeEventListener === 'function') view.removeEventListener('resize', measure)
     }
-  }, [mainColor, backgroundColor, chosen, pixelSize, pixelStyle, pixelRadius])
+  }, [mainColor, backgroundColor, chosen, pixelSize, pixelStyle, pixelRadius, gradient])
 
   return h('canvas', {
     ref: canvasRef,
@@ -2690,6 +3231,7 @@ function AppearanceSettingsReviewSection({
   pixelSize,
   pixelStyle,
   pixelRadius,
+  gradient,
   creatorBusy,
   onSelect,
   onCreate,
@@ -2752,6 +3294,7 @@ function AppearanceSettingsReviewSection({
         pixelSize,
         pixelStyle,
         pixelRadius,
+        gradient,
       }),
       h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, chosenLabel))))
 }
@@ -2784,6 +3327,18 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
     pixelSize: appearanceSettingsNumber(stored.pixelSize, 10, 6, 32),
     pixelStyle: stored.pixelStyle === 'rounded' ? 'rounded' : 'square',
     pixelRadius: appearanceSettingsNumber(stored.pixelRadius, 0.25, 0, 0.5),
+    gradientMode: stored.gradientMode === 'universal' || stored.gradientMode === 'custom'
+      ? stored.gradientMode
+      : 'off',
+    gradientPreset: (stored.gradientPreset === 'custom'
+      || APPEARANCE_GRADIENT_PRESETS.some((item) => item.id === stored.gradientPreset))
+      ? stored.gradientPreset
+      : 'auto',
+    gradientFrom: typeof stored.gradientFrom === 'string' ? stored.gradientFrom : '',
+    gradientTo: typeof stored.gradientTo === 'string' ? stored.gradientTo : '',
+    gradientAngle: appearanceSettingsNumber(stored.gradientAngle, 135, 0, 360),
+    gradientStrength: appearanceSettingsNumber(stored.gradientStrength, 1, 0, 1),
+    gradientTargets: typeof stored.gradientTargets === 'string' ? stored.gradientTargets : '',
     composerWaveMode: stored.composerWaveMode === 'caret' ? 'caret' : 'whole',
     waveDamping: appearanceSettingsNumber(stored.waveDamping, 0, 0, 1),
     reviewSubTheme: APPEARANCE_REVIEW_CHOICES.indexOf(stored.reviewSubTheme) >= 0
@@ -2802,6 +3357,18 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const motionDisabled = inactive || staticTheme || responseTheme || reviewTheme
   const palette = APPEARANCE_PALETTES.find((item) => item.id === config.palette) || null
   const customPalette = !palette || palette.id === 'custom'
+  const gradient = appearanceResolveGradient(config, config.mainColor)
+  const gradientTargets = appearanceParseGradientTargets(config.gradientTargets)
+  const gradientActive = config.gradientMode !== 'off'
+  const gradientAutoFrom = appearanceSettingsHex(config.mainColor, '#4D6BFE')
+  const gradientAutoTo = appearanceDeriveGradientEnd(gradientAutoFrom)
+  const gradientMappingOptions = [
+    { value: 'auto', label: t('gradientMappingAuto') },
+    { value: 'horizontal', label: t('gradientMappingHorizontal') },
+    { value: 'vertical', label: t('gradientMappingVertical') },
+    { value: 'radial', label: t('gradientMappingRadial') },
+    { value: 'off', label: t('gradientMappingOff') },
+  ]
 
   const [writeFailed, setWriteFailed] = React.useState(false)
   const [staleHost, setStaleHost] = React.useState(false)
@@ -2941,6 +3508,29 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
   const setPixelSize = (value) => write({ pixelSize: value })
   const setPixelStyle = (value) => write({ pixelStyle: value })
   const setPixelRadius = (value) => write({ pixelRadius: value })
+  const setGradientMode = (value) => write({ gradientMode: value })
+  const setGradientPreset = (id) => {
+    const preset = APPEARANCE_GRADIENT_PRESETS.find((item) => item.id === id) || null
+    if (preset && preset.from && preset.to) {
+      write({ gradientPreset: id, gradientFrom: preset.from, gradientTo: preset.to })
+    } else {
+      write({ gradientPreset: id, gradientFrom: '', gradientTo: '' })
+    }
+  }
+  const setGradientColor = (key, value) => {
+    const patch = { gradientPreset: 'custom' }
+    patch[key] = value
+    write(patch)
+  }
+  const setGradientAngle = (value) => write({ gradientAngle: value })
+  const setGradientStrength = (value) => write({ gradientStrength: value })
+  const setGradientTarget = (id, value) => {
+    const next = { ...gradientTargets }
+    if (value === 'auto') delete next[id]
+    else next[id] = value
+    write({ gradientTargets: Object.keys(next).length === 0 ? '' : JSON.stringify(next) })
+  }
+  const resetGradientTargets = () => write({ gradientTargets: '' })
   const setComposerWaveMode = (value) => write({ composerWaveMode: value })
   const setWaveDamping = (value) => write({ waveDamping: value })
   const setReviewSubTheme = (value) => write({ reviewSubTheme: value })
@@ -3166,7 +3756,114 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
       disabled: inactive || staticTheme || config.pixelStyle !== 'rounded',
       format: (number) => (Math.round(Number(number) * config.pixelSize * 10) / 10) + 'px',
       onChange: setPixelRadius,
-    }))),
+    })),
+  h('div', { className: 'apx-grad' },
+    h('div', { className: 'apx-grad-head' },
+      h('span', { className: 'apx-grad-title' }, t('sectionGradient')),
+      h('span', { className: 'apx-grad-sub' }, t('gradientMode'))),
+    h(AppearanceSettingsSegmented, {
+      label: t('gradientMode'),
+      value: config.gradientMode,
+      disabled: inactive || staticTheme,
+      options: [
+        { value: 'off', label: t('gradientModeOff') },
+        { value: 'universal', label: t('gradientModeUniversal') },
+        { value: 'custom', label: t('gradientModeCustom') },
+      ],
+      onChange: setGradientMode,
+    }),
+    gradientActive
+      ? h('div', { className: 'apx-grad-body' },
+        h('p', { className: 'apx-grad-hint' },
+          t(config.gradientMode === 'universal' ? 'gradientHintUniversal' : 'gradientHintCustom')),
+        h('div', {
+          className: 'apx-grad-presets',
+          role: 'group',
+          'aria-label': t('gradientPreset'),
+        }, APPEARANCE_GRADIENT_PRESETS.map((item) => {
+          const selected = config.gradientPreset === item.id
+          const from = item.id === 'auto' ? gradientAutoFrom : (item.from || gradient.from)
+          const to = item.id === 'auto' ? gradientAutoTo : (item.to || gradient.to)
+          return h('button', {
+            key: item.id,
+            type: 'button',
+            className: 'apx-grad-preset',
+            'aria-pressed': selected,
+            onClick: () => setGradientPreset(item.id),
+          },
+          h('span', {
+            className: 'apx-grad-swatch',
+            'aria-hidden': 'true',
+            style: { background: 'linear-gradient(90deg, ' + from + ', ' + to + ')' },
+          }),
+          h('span', { className: 'apx-grad-preset-name' }, t(item.nameKey)))
+        })),
+        h('div', { className: 'apx-custom-colors apx-grad-colors' },
+          h(AppearanceSettingsColorField, {
+            label: t('gradientFrom'),
+            value: gradient.from,
+            fallback: appearanceSettingsHex(config.mainColor, '#4D6BFE'),
+            autoLabel: t('gradientPresetAuto'),
+            onChange: (value) => setGradientColor('gradientFrom', value),
+          }),
+          h(AppearanceSettingsColorField, {
+            label: t('gradientTo'),
+            value: gradient.to,
+            fallback: appearanceSettingsHex(config.mainColor, '#4D6BFE'),
+            autoLabel: t('gradientPresetAuto'),
+            onChange: (value) => setGradientColor('gradientTo', value),
+          })),
+        config.gradientMode === 'universal'
+          ? h(AppearanceSettingsSlider, {
+            label: t('gradientAngle'),
+            value: config.gradientAngle,
+            min: 0,
+            max: 360,
+            step: 1,
+            format: (number) => Math.round(Number(number)) + '°',
+            onChange: setGradientAngle,
+          })
+          : null,
+        h(AppearanceSettingsSlider, {
+          label: t('gradientStrength'),
+          value: config.gradientStrength,
+          min: 0,
+          max: 1,
+          step: 0.01,
+          format: (number) => Math.round(Number(number) * 100) + '%',
+          onChange: setGradientStrength,
+        }),
+        config.gradientMode === 'custom'
+          ? h('details', { className: 'apx-grad-advanced' },
+            h('summary', null, t('gradientAdvanced')),
+            h('p', { className: 'apx-grad-advanced-hint' }, t('gradientAdvancedHint')),
+            h('div', { className: 'apx-grad-groups' },
+              APPEARANCE_GRADIENT_TARGET_GROUPS.map((group) => h('div', {
+                key: group.id,
+                className: 'apx-grad-group',
+              },
+              h('span', { className: 'apx-grad-group-title' }, t(group.titleKey)),
+              group.items.map((item) => h('label', {
+                key: item.id,
+                className: 'apx-grad-row',
+              },
+              h('span', { className: 'apx-grad-row-label' }, t(item.labelKey)),
+              h('select', {
+                className: 'apx-select',
+                value: gradientTargets[item.id] || 'auto',
+                'aria-label': t(item.labelKey),
+                onChange: (event) => setGradientTarget(item.id, event.target.value),
+              }, gradientMappingOptions.map((option) => h('option', {
+                key: option.value,
+                value: option.value,
+              }, option.label)))))))),
+            h('button', {
+              type: 'button',
+              className: 'apx-clear apx-grad-reset',
+              onClick: resetGradientTargets,
+            }, t('gradientResetTargets')))
+          : null)
+      : null)),
 
   reviewTheme
     ? h(AppearanceSettingsReviewSection, {
@@ -3177,6 +3874,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
       pixelSize: config.pixelSize,
       pixelStyle: config.pixelStyle,
       pixelRadius: config.pixelRadius,
+      gradient,
       creatorBusy,
       onSelect: setReviewSubTheme,
       onCreate: () => openCreator('review'),
@@ -3354,6 +4052,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
         pixelSize: config.pixelSize,
         pixelStyle: config.pixelStyle,
         pixelRadius: config.pixelRadius,
+        gradient,
       }),
       h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t('response'))))
     : staticTheme
@@ -3394,6 +4093,7 @@ function AppearanceSettingsPage({ t, store, startCreator, close }) {
             pixelSize: config.pixelSize,
             pixelStyle: config.pixelStyle,
             pixelRadius: config.pixelRadius,
+            gradient,
           }),
           h('span', { className: 'apx-preview-meta', 'aria-hidden': 'true' }, t(config.animation)))),
 
@@ -3792,6 +4492,152 @@ const appearanceSettingsCss = `
   padding-top: 14px;
   border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
+.apx-grad {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+.apx-grad-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.apx-grad-title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.apx-grad-sub {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.apx-grad-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.apx-grad-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.apx-grad-preset:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.apx-grad-preset[aria-pressed="true"] {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: inset 0 0 0 0.5px var(--dsw-alias-state-business-primary);
+}
+.apx-grad-swatch {
+  display: block;
+  height: 26px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+}
+.apx-grad-preset-name {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-preset[aria-pressed="true"] .apx-grad-preset-name {
+  color: var(--dsw-alias-label-primary);
+}
+.apx-grad-colors {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.apx-grad-advanced {
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+.apx-grad-advanced summary {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.apx-grad-advanced-hint {
+  margin: 6px 0 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.apx-grad-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.apx-grad-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.apx-grad-group-title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.apx-grad-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.apx-grad-row-label {
+  flex: 1;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.apx-select {
+  flex: none;
+  min-width: 104px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.apx-grad-reset {
+  margin-top: 10px;
+  margin-left: 0;
+}
 .apx-stack { display: flex; flex-direction: column; gap: 14px; }
 .apx-color-field {
   display: flex;
@@ -4092,6 +4938,9 @@ const appearanceSettingsCss = `
   .apx-segment { flex: 1 1 40%; }
   .apx-slider-label { width: auto; min-width: 64px; }
   .apx-custom-colors { grid-template-columns: 1fr; }
+  .apx-grad-presets { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .apx-grad-row { flex-wrap: wrap; }
+  .apx-select { min-width: 88px; }
   .apx-review-anims { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4433,6 +5282,7 @@ function appearanceMountScenes(ctx, store) {
           cell: Math.max(4, Math.round(state.effective.pixelSize * (window.devicePixelRatio || 1))),
           pixelStyle: state.effective.pixelStyle,
           pixelRadius: state.effective.pixelRadius,
+          gradient: state.effective.gradient,
         })
       } catch (cause) {
         console.error('appearance: canvas paint failed', cause)
@@ -4808,6 +5658,41 @@ function appearanceResponseWaveAmp(strength, radius, reach, damping) {
   if (amount <= 0) return strength * edge
   const progress = appearanceClamp(radius / reach, 0, 1)
   return strength * edge * Math.pow(1 - progress, amount * 4)
+}
+
+/** Length of the amplitude fade at the end of a wave's travel, in CSS px. */
+const APPEARANCE_RESPONSE_WAVE_EDGE_FADE = 120
+/**
+ * Amplitude ratio at which a wave counts as gone for the natural gradient:
+ * the target colour must be reached while the wave still has 20% of its
+ * amplitude left, i.e. shortly before it disappears.
+ */
+const APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE = 0.2
+
+/**
+ * Distance from the wave origin at which the natural wave gradient should
+ * arrive at its target colour.
+ *
+ * Damping both shortens the reach and decays the amplitude with distance, so
+ * a damped wave visually dies long before `reach`. Normalising the gradient by
+ * the damped amplitude curve keeps the A→B shift inside the visible part of
+ * the wave instead of stretching it across the whole canvas:
+ *
+ *   damping = 0    → 120 px edge fade only: stop where 20% of it remains
+ *   damping > 0    → radius where (1 − r/reach)^(4·damping) = 20%
+ *
+ * The result is used as the wave's per-wave `gradientSpan` by the painters.
+ */
+function appearanceResponseWaveGradientSpan(reach, damping) {
+  const safeReach = Math.max(1, Number(reach) || 0)
+  const amount = appearanceClamp(Number(damping) || 0, 0, 1)
+  let progress
+  if (amount <= 0) {
+    progress = (safeReach - APPEARANCE_RESPONSE_WAVE_EDGE_FADE * APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE) / safeReach
+  } else {
+    progress = 1 - Math.pow(APPEARANCE_RESPONSE_WAVE_GRADIENT_FADE, 1 / (4 * amount))
+  }
+  return Math.max(1, safeReach * appearanceClamp(progress, 0.05, 1))
 }
 
 /**
@@ -5200,6 +6085,7 @@ function appearanceResponseCreateRuntime(options) {
         radius,
         width: wave.width,
         strength,
+        gradientSpan: appearanceResponseWaveGradientSpan(reach, effective.waveDamping),
       })
     }
 
@@ -5243,6 +6129,7 @@ function appearanceResponseCreateRuntime(options) {
         halos,
         trail,
         waves: localWaves,
+        gradient: effective.gradient,
       })
     } catch (cause) {
       console.error('appearance: response paint failed', cause)
@@ -6826,19 +7713,79 @@ function appearancePaintReview(canvas, options) {
     EngineClamp(Math.round(color.b), 0, 255),
     EngineClamp(Math.round(EngineClamp(color.a, 0, 1) * 255), 0, 255),
   ])
+  const gradient = EngineNormalizeGradient(settings.gradient)
+  const gradientMapping = gradient ? EngineGradientTargetMapping(gradient, animation) : 'off'
+  let gradientPalettes = null
+  let gradientMode = 'off'
+  let gradientSpot = null
+  if (gradient && gradientMapping !== 'off') {
+    gradientPalettes = EngineBuildGradientPalettes(background, main, gradient)
+    if (gradient.mode === 'universal') gradientMode = 'linear'
+    else if (gradientMapping === 'auto') gradientMode = EngineGradientNaturalMapping(animation)
+    else gradientMode = gradientMapping
+    if (gradientMode === 'spot') {
+      const distance = spec.data && spec.data.dist
+      if (distance && distance.length >= cols * rows) gradientSpot = distance
+      else gradientMode = 'radial'
+    }
+  }
   let levels = spec.levels
   if (!levels || levels.length < cols * rows) {
     levels = new Uint8Array(cols * rows)
     spec.levels = levels
   }
   let index = 0
-  for (let row = 0; row < rows; row += 1) {
-    const rowBase = (row & 7) << 3
-    for (let col = 0; col < cols; col += 1, index += 1) {
-      levels[index] = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+  if (gradientPalettes) {
+    const words = entry.layerWords
+    const data = entry.layerImage.data
+    const angle = gradient.angle
+    for (let row = 0; row < rows; row += 1) {
+      const rowBase = (row & 7) << 3
+      const v = (row + 0.5) / rows
+      for (let col = 0; col < cols; col += 1, index += 1) {
+        const level = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+        levels[index] = level
+        if (level <= 0) {
+          if (words) {
+            words[index] = 0
+          } else {
+            const offset = index * 4
+            data[offset] = 0
+            data[offset + 1] = 0
+            data[offset + 2] = 0
+            data[offset + 3] = 0
+          }
+          continue
+        }
+        const factor = EngineGradientCanvasFactor(
+          gradientMode,
+          (col + 0.5) / cols,
+          v,
+          angle,
+          gradientSpot ? gradientSpot[index] : 0,
+        )
+        const variantIndex = EngineGradientVariantIndex(gradientPalettes, factor)
+        if (words) {
+          words[index] = gradientPalettes.packed[variantIndex][level]
+        } else {
+          const color = gradientPalettes.bytes[variantIndex][level]
+          const offset = index * 4
+          data[offset] = color[0]
+          data[offset + 1] = color[1]
+          data[offset + 2] = color[2]
+          data[offset + 3] = color[3]
+        }
+      }
     }
+  } else {
+    for (let row = 0; row < rows; row += 1) {
+      const rowBase = (row & 7) << 3
+      for (let col = 0; col < cols; col += 1, index += 1) {
+        levels[index] = EnginePaletteLevel(cov[index], bayer[rowBase + (col & 7)])
+      }
+    }
+    EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   }
-  EngineWritePreviewLayer(entry, levels, palettePacked, paletteBytes)
   entry.layerContext.putImageData(entry.layerImage, 0, 0)
   context.imageSmoothingEnabled = false
   context.clearRect(0, 0, width, height)
@@ -7304,6 +8251,7 @@ function appearanceReviewCreateRuntime(options) {
         cell: effective.pixelSize,
         pixelStyle: effective.pixelStyle,
         pixelRadius: effective.pixelRadius,
+        gradient: effective.gradient,
       })
     } catch (cause) {
       console.error('appearance: review paint failed', cause)

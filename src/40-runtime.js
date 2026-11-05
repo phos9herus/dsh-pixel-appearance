@@ -328,6 +328,7 @@ function appearanceMountScenes(ctx, store) {
           cell: Math.max(4, Math.round(state.effective.pixelSize * (window.devicePixelRatio || 1))),
           pixelStyle: state.effective.pixelStyle,
           pixelRadius: state.effective.pixelRadius,
+          gradient: state.effective.gradient,
         })
       } catch (cause) {
         console.error('appearance: canvas paint failed', cause)

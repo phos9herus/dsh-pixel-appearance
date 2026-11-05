@@ -35,6 +35,22 @@ const APPEARANCE_PALETTES = [
 ]
 const APPEARANCE_STYLES = ['native', 'glass', 'transparent']
 const APPEARANCE_STATIC_DEFAULT_IMAGE = 'data:image/svg+xml;charset=utf-8,…' // built-in default picture
+/** Main-colour gradient presets; `auto` derives both ends from the main colour. */
+const APPEARANCE_GRADIENT_PRESETS = [
+  { id: 'auto',  nameKey: 'gradientPresetAuto',   from: null, to: null },
+  { id: 'neon',  nameKey: 'gradientPresetNeon',   from: '#22D3EE', to: '#A855F7' },
+  { id: 'sunset',nameKey: 'gradientPresetSunset', from: '#F59E0B', to: '#F43F5E' },
+  { id: 'ice',   nameKey: 'gradientPresetIce',    from: '#7DD3FC', to: '#6366F1' },
+  { id: 'aurora',nameKey: 'gradientPresetAurora', from: '#34D399', to: '#818CF8' },
+]
+const APPEARANCE_GRADIENT_TARGET_GROUPS = [
+  { id: 'pixel',    titleKey: 'gradientTargetGroupPixel',
+    items: [{ id: 'ripple' }, { id: 'rain' }, { id: 'aurora' }, { id: 'pulse' }] },
+  { id: 'response', titleKey: 'gradientTargetGroupResponse',
+    items: [{ id: 'halo' }, { id: 'waves' }, { id: 'trail' }] },
+  { id: 'review',   titleKey: 'gradientTargetGroupReview',
+    items: [{ id: 'code' }, { id: 'investigate' }, { id: 'create' }, { id: 'discuss' }] },
+]
 ```
 
 Theme ids are `native`, `pixel`, `static`, and `response`; the list of theme
@@ -60,6 +76,18 @@ default to `glass`. Shared helpers: `appearanceStaticImageSource(value)`
 resolves a stored value to a safe image source (data URL, http(s) URL, or the
 built-in default) and `appearanceCssUrl(value)` builds a quoted `url("…")`.
 
+Main-colour gradient (pixel, response, and review themes) is stored in
+`gradientMode` (`off` | `universal` | `custom`), `gradientPreset` (`auto`, a
+preset id, or `custom`), `gradientFrom` / `gradientTo` (hex start/end, used by
+the `custom` preset), `gradientAngle` (0–360), `gradientStrength` (0–1), and
+`gradientTargets` (JSON string mapping a target id to
+`horizontal | vertical | radial | off`; anything else falls back to `auto`).
+`appearanceResolveGradient(config, mainColor)` turns those fields into the
+paint-time bundle (or null when disabled); when the preset is `auto` the start
+colour is the resolved main colour and the end colour is derived from it
+(`appearanceDeriveGradientEnd`). The gradient only affects the canvas and its
+section previews; composer/sidebar fills keep the solid main colour.
+
 ## Engine API (`10-engine.js`)
 
 ```js
@@ -83,7 +111,7 @@ function appearanceWantsDark(hex)
  */
 function appearancePaintPreview(canvas, {
   mainColor, backgroundColor, animation, time, cell,
-  pixelStyle, pixelRadius,
+  pixelStyle, pixelRadius, gradient,
 })
 
 /**
@@ -92,15 +120,18 @@ function appearancePaintPreview(canvas, {
  * single `halo` object is still accepted for compatibility. `trail` stamps
  * persistent main-colour pixels and fades them:
  * `{ x, y, retention, now, active, reset }`, with retention in milliseconds.
- * Each wave is `{ kind: 'circle' | 'rect', radius, width, strength, ... }` with
- * CSS-pixel geometry. Circle waves use `x`/`y`; rectangle waves use a centre
- * `x`/`y` plus `halfW`/`halfH`/`corner`. The same `pixelStyle` / `pixelRadius`
- * options round the response field; `cell` is the CSS pixel size from
- * `pixelSize`.
+ * Each wave is `{ kind: 'circle' | 'rect', radius, width, strength, gradientSpan?, ... }`
+ * with CSS-pixel geometry. Circle waves use `x`/`y`; rectangle waves use a centre
+ * `x`/`y` plus `halfW`/`halfH`/`corner`. `gradientSpan` is the travel distance at
+ * which the natural wave gradient reaches its target colour; the Response runtime
+ * supplies it from `appearanceResponseWaveGradientSpan(reach, waveDamping)` so the
+ * colour shift finishes before the damped wave dies. The same `pixelStyle` /
+ * `pixelRadius` options round the response field; `cell` is the CSS pixel size
+ * from `pixelSize`.
  */
 function appearancePaintReactive(canvas, {
   mainColor, backgroundColor, width, height, dpr, cell,
-  pixelStyle, pixelRadius, halos, halo, trail, waves,
+  pixelStyle, pixelRadius, halos, halo, trail, waves, gradient,
 })
 
 /** Optional sprite-sheet helper retained for Creator experiments. */
@@ -113,6 +144,24 @@ quantised to a ramp level with Bayer 8×8 ordered dithering, so pixel blocks can
 be background, main, or an intermediate colour. All time terms are integer
 harmonics of `theta = 2*pi*frac(time / 8)` for a seamless loop. Coverage at 0
 stays exactly at the background level, so empty areas contain no fixed dots.
+
+`gradient` is optional and shared by the three painters:
+`{ mode: 'universal' | 'custom', from, to, angle, strength, targets }`.
+`universal` projects every grid cell onto one canvas-space linear gradient at
+`angle` (0 = left→right) and applies it to every theme, animation, part, and
+sub-theme. `custom` resolves each target to `auto | horizontal | vertical |
+radial | off`; `auto` uses the designed mapping: ripple/pulse radial from the
+canvas centre, rain/aurora/code vertical, create/discuss horizontal, halo
+radial around the pointer, waves radial around the wave source normalised to
+the damped visible travel (`gradientSpan`, so the target colour is reached
+before the wave disappears), trail temporal (fresh A → old B), investigate the
+precomputed radar distance field. A gradient
+never paints a layer: it only makes the main colour of the six-level ramp vary
+per cell, so level 0 stays the background and the Bayer / rounded-mask /
+background-fill pipelines are untouched. `strength` blends the gradient back
+toward the plain main colour (0 = solid main, i.e. identical to no gradient).
+The painters build 32 ramp variants (`EngineBuildGradientPalettes`), pick one
+per cell from the gradient factor, and keep the same packed-word fast path.
 
 ## Settings page (`30-settings.js`)
 
@@ -140,6 +189,15 @@ function AppearanceSettingsPage({ t, store, startCreator, close })
   disabled under Native / Static. The corner-radius slider displays the
   equivalent CSS px (`pixelRadius * pixelSize`) so it visibly adapts when the
   pixel size changes.
+- **Gradient** (inside the Pixels section, so it is available under the Pixel,
+  Response, and Review themes): mode `off` | `universal` | `custom`, a preset
+  row (`auto`, Neon, Sunset, Ice, Aurora), start/end colour fields (editing a
+  colour switches the preset to `custom`), a strength slider, an angle slider
+  in `universal` mode, and a collapsed `个性化映射（高级）` details panel in
+  `custom` mode with one mapping select per target (11 rows: four animations,
+  halo/waves/trail, four review sub-themes). The three section previews receive
+  the resolved gradient, and the page patches `gradientTargets` by
+  re-serialising the JSON map.
 - Selecting `response` reveals extra sections: **Response effect**
   (`responseRadius`, 40–400 px, `haloStyle` `static` | `dynamic`, and
   `trailStrength` 0–1 shown as 0–100%), **Composer wave** (`composerWaveMode`:
@@ -153,7 +211,8 @@ function AppearanceSettingsPage({ t, store, startCreator, close })
   keep its damping identical to the runtime.
 - `appearanceEffective(config, scheme)` resolves colours, composer/sidebar fills,
   material blur, `responseRadius`, `haloStyle`, `trailStrength`, `canvasStyle`,
-  `pixelSize`, `pixelStyle`, `pixelRadius`, and the static values `staticImage`,
+  `pixelSize`, `pixelStyle`, `pixelRadius`, the resolved `gradient` bundle
+  (null when disabled), and the static values `staticImage`,
   `staticBlur`, `staticDim`; for the static theme it also supplies a fallback
   sidebar glass fill when the sidebar material is `native`.
 - The page owns its `<style>` tag and uses `apx-` class names plus DSH theme tokens.
@@ -167,7 +226,8 @@ scene gets `data-appearance-scene` whenever a custom theme is active. All three
 custom themes apply the global `canvasStyle` to `[data-slot="main"]`: `glass`
 adds a translucent tint plus `backdrop-filter` through a `::before` layer over
 the canvas or static picture, `transparent` leaves the surface clear. The Pixel
-and Response painters both receive `pixelSize`, `pixelStyle`, and `pixelRadius`;
+and Response painters both receive `pixelSize`, `pixelStyle`, `pixelRadius`,
+and the resolved `gradient` bundle.
 they write the field to one offscreen layer, scale it with nearest-neighbour
 sampling, and (for `rounded`) clip it with a repeating cell-sized mask.
 
@@ -187,7 +247,11 @@ sampling, and (for `rounded`) clip it with a repeating cell-sized mask.
   Selection rect and falls back to the card edge when no caret rect is
   available. `waveDamping` shrinks each wave's reach to `maxEdge * (1 - 0.8d)`
   and decays its amplitude with distance; `waveDamping = 0` keeps the original
-  flat amplitude and 120 px edge fade. `haloStyle` `dynamic` calls
+  flat amplitude and 120 px edge fade. The same damping curve defines the natural
+  wave gradient's `gradientSpan` (`appearanceResponseWaveGradientSpan(reach,
+  damping)`), the radius where the damped amplitude is down to 20%, so the
+  main-colour gradient reaches its target colour just before the wave fades
+  out. `haloStyle` `dynamic` calls
   `appearanceResponseHaloPulse` to oscillate the halo radius by ±12% and its
   brightness by ±10% over a 2.6 s cycle; `static` keeps scale/strength at 1.
   `trailStrength > 0` maps to a retention time of 250–2000 ms
@@ -302,7 +366,7 @@ The detector exposes a stable guide object (plain JSON, no DOM references):
  */
 function appearancePaintReview(canvas, {
   mainColor, backgroundColor, animation, guide, time, cell,
-  pixelStyle, pixelRadius,
+  pixelStyle, pixelRadius, gradient,
 })
 ```
 

@@ -45,6 +45,11 @@ dependency.
 - Seven colour combinations plus custom main/background colours.
 - Pixel size (6–32 CSS px), square or rounded pixels, and a corner radius that
   scales with the pixel size.
+- Two-colour main-colour gradient for the pixel field: **Universal** (one
+  canvas-space angle shared by every pixel theme) or **Personal** (per
+  animation, per response part, and per review sub-theme mappings), with
+  Auto, Neon, Sunset, Ice, and Aurora presets, start/end colours, a strength
+  slider, and an angle slider in Universal mode.
 - Canvas surface material for every custom theme: frosted glass or transparent.
 - Composer and sidebar materials: native, frosted glass, or transparent, each
   with colour and opacity.
@@ -120,7 +125,8 @@ Open **Settings → Appearance → Theme** and choose a theme card.
 - Theme cards: Native, Pixel, Response, Retrospective, Static.
 - The **Canvas style** panel is available for all custom themes (disabled under
   Native).
-- The **Pixels** panel is enabled for Pixel, Response, and Retrospective themes.
+- The **Pixels** panel is enabled for Pixel, Response, and Retrospective themes;
+  its **Gradient** block offers `off`, `universal`, and `custom` modes.
 - The **Response effect**, **Composer wave**, and **Wave damping** panels appear
   when the Response theme is selected.
 - The **Sub-theme animation** panel appears when Retrospective is selected.
@@ -139,6 +145,8 @@ Open **Settings → Appearance → Theme** and choose a theme card.
 
 The trail strength maps to a retention time of **250–2000 ms**. A value of 0
 disables the trail. Static and dynamic halo styles both support the trail.
+Wave damping also shortens the natural wave gradient: its colour reaches the
+target hue just before the damped wave fades out.
 
 ### Retrospective content guidance
 
@@ -166,6 +174,12 @@ disables the trail. Static and dynamic halo styles both support the trail.
 | `pixelSize` | `10` | Pixel block size in CSS px (6–32) |
 | `pixelStyle` | `square` | `square` or `rounded` |
 | `pixelRadius` | `0.25` | Corner radius as a fraction of the pixel size (0–0.5) |
+| `gradientMode` | `off` | `off`, `universal` (one canvas-space gradient), or `custom` (per-target mappings) |
+| `gradientPreset` | `auto` | `auto`, `neon`, `sunset`, `ice`, `aurora`, or `custom` |
+| `gradientFrom` / `gradientTo` | — | Start/end colours for the `custom` preset; empty falls back to the main colour and its derived end |
+| `gradientAngle` | `135` | Universal gradient angle in degrees (0–360) |
+| `gradientStrength` | `1` | Gradient blend toward the plain main colour (0–1) |
+| `gradientTargets` | — | JSON map of target → `horizontal`, `vertical`, `radial`, or `off`; unset targets use `auto` |
 | `responseRadius` | `180` | Pointer-halo radius in CSS px (40–400) |
 | `haloStyle` | `static` | `static` or `dynamic` breathing halo |
 | `trailStrength` | `0` | Trail strength (0–1); 0 = no trail, 1 ≈ 2 s retention |

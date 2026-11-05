@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.9.0 — Main-colour gradients
+
+### Appearance controls
+- New two-colour main-colour gradient for the Pixel, Response, and Retrospective
+  themes. **Universal** runs one canvas-space linear gradient (angle 0–360°,
+  strength 0–100%) shared by every animation, part, and sub-theme; **Personal**
+  maps each of the 11 targets (four animations, halo/waves/trail, four review
+  sub-themes) to its natural, horizontal, vertical, radial, or off colouring.
+- Gradient presets: Auto (follows the main colour and derives the end colour),
+  Neon, Sunset, Ice, and Aurora, plus custom start/end colours. Editing a colour
+  switches to the custom preset.
+- The gradient only tints the main colour of the six-level pixel ramp, so the
+  background, Bayer dithering, rounded pixel mask, and background fill are
+  unchanged; composer and sidebar fills keep the solid main colour.
+- Host Config additions: `gradientMode`, `gradientPreset`, `gradientFrom`,
+  `gradientTo`, `gradientAngle`, `gradientStrength`, and `gradientTargets`.
+
+### Response theme
+- The natural wave gradient now follows wave damping: each wave's gradient ends
+  when its damped amplitude is down to 20%, so the target hue is reached just
+  before the wave fades out. Explicit radial mappings keep the canvas-normalised
+  span.
+
+### Fixes and polish
+- Settings previews (Pixel, Response, Retrospective) render the resolved
+  gradient, and the gradient section documents the universal/personal behaviour.
+
 ## 1.8.0 — Retrospective theme
 
 ### Themes
